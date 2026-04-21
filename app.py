@@ -25,8 +25,8 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGIN_BG = "login.jpeg"       # External building image
-MAIN_BG = "after_login.jpg"    # Internal hallway image
+LOGIN_BG = "login.jpeg"       
+MAIN_BG = "after_login.jpg"    
 
 # --- 2. BACKGROUND IMAGE HELPER ---
 def get_base64_of_bin_file(bin_file):
@@ -37,8 +37,7 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     if os.path.exists(image_file):
         bin_str = get_base64_of_bin_file(image_file)
-        # Apply blur only if NOT on the login page
-        blur_val = "0px" if is_login else "8px"
+        blur_val = "0px" if is_login else "12px"  # Increased blur for better contrast
         
         st.markdown(f"""
             <style>
@@ -46,54 +45,52 @@ def apply_background(image_file, is_login=False):
                 background-image: url("data:image/jpeg;base64,{bin_str}");
                 background-size: cover;
                 background-position: center;
+                background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            /* Glassmorphism/Blur Effect Overlay */
+            /* Glassmorphism Overlay - Fixed for visibility */
             .stApp::before {{
                 content: "";
                 position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(255, 255, 255, 0.1); 
+                background: rgba(255, 255, 255, 0.2); 
                 backdrop-filter: blur({blur_val});
                 z-index: -1;
             }}
-            /* Container Styling */
+            /* Content Container - Solid for Readability */
             .main .block-container {{
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 40px;
-                border-radius: 20px;
-                margin-top: 30px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+                background-color: rgba(255, 255, 255, 0.98); 
+                padding: 3rem;
+                border-radius: 15px;
+                margin-top: 20px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             }}
-            /* Student Row Highlighting */
-            .student-row {{
-                background: white;
+            /* UI Elements visibility */
+            .stTabs [data-baseweb="tab-list"] {{
+                background-color: #f0f2f6;
                 padding: 10px;
                 border-radius: 10px;
-                margin-bottom: 8px;
-                border: 1px solid #e0e0e0;
-                display: flex;
-                align-items: center;
             }}
             </style>
         """, unsafe_allow_html=True)
 
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
-    main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
-    sub_title_color = "#FFD700" if is_login_page else "#B45309"
-    body_text_color = "#FFFFFF" if is_login_page else "#374151"
+    # Fixed colors for maximum visibility against white background
+    main_title_color = "#1E3A8A" # Deep Navy Blue
+    sub_title_color = "#B45309"  # Rich Amber
+    body_text_color = "#374151"  # Dark Gray
 
     st.markdown(f"""
-        <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
+        <div style="text-align: center; background: white; padding: 20px; border-radius: 10px; border-bottom: 4px solid #1E3A8A;">
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 32px; font-weight: 900;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 5px; font-size: 22px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: bold; margin-top: 10px; letter-spacing: 1px; font-size: 16px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
+            <div style="background-color: #1E3A8A; color: white; display: inline-block; padding: 6px 15px; border-radius: 20px; font-size: 15px; font-weight: bold; margin-top: 10px;">
                 M.Tech. - Computer Science & Engineering (SCS)
             </div>
         </div>
-        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
+        <br>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION GATE ---
@@ -108,10 +105,10 @@ if not st.session_state.authenticated:
     display_header(is_login_page=True)
 
     with st.form("Login"):
-        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Faculty & CR Login</h2>", unsafe_allow_html=True)
         role = st.selectbox("Select Role", ["Faculty", "CR"])
         password = st.text_input("Access Password", type="password")
-        submit = st.form_submit_button("Login to System", use_container_width=True)
+        submit = st.form_submit_button("Access System", use_container_width=True)
         
         if submit:
             if password == CREDENTIALS[role]:
@@ -119,80 +116,79 @@ if not st.session_state.authenticated:
                 st.session_state.user_role = role
                 st.rerun()
             else:
-                st.error("Incorrect Password")
+                st.error("Incorrect Password provided.")
     st.stop()
 
 # --- 5. MAIN INTERFACE (Post-Login) ---
 st.set_page_config(page_title="Attendance Portal", layout="wide")
-apply_background(MAIN_BG, is_login=False) # Hallway with BLUR
+apply_background(MAIN_BG, is_login=False) 
 display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
-    if st.button("🚪 Logout", type="primary", use_container_width=True):
+    st.markdown(f"### 👤 Logged in as: \n**{st.session_state.user_role}**")
+    if st.button("🚪 Logout System", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
+            st.download_button("📂 Export CSV Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Mark Attendance", "📊 Analytics Dashboard"])
 
 with tab1:
-    st.markdown("### 📝 Mark Daily Attendance")
-    c1, c2 = st.columns(2)
+    st.markdown("### 📝 Current Session Attendance")
+    c1, c2 = st.columns([2, 1])
     with c1:
-        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
+        sub = st.selectbox("Select Subject", list(SUBJECT_INFO.keys()))
     with c2:
-        dt = st.date_input("Date", date.today())
+        dt = st.date_input("Session Date", date.today())
     
-    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    st.success(f"**Current Instructor:** {SUBJECT_INFO[sub]}")
     
-    # Table Header with specific highlighting
+    # Improved Visual Table
     st.markdown("""
-        <div style="background-color: #1E3A8A; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-            <div style="display: flex; font-weight: bold;">
-                <div style="flex: 1.5;">USN</div>
-                <div style="flex: 3;">NAME</div>
-                <div style="flex: 1.5;">STATUS</div>
-                <div style="flex: 2;">ACTION</div>
-            </div>
+        <div style="background-color: #1E3A8A; color: white; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: flex; font-weight: bold; text-align: center;">
+            <div style="flex: 1.5;">USN</div>
+            <div style="flex: 3;">STUDENT NAME</div>
+            <div style="flex: 1.5;">CURRENT STATUS</div>
+            <div style="flex: 2;">ACTION</div>
         </div>
     """, unsafe_allow_html=True)
     
     for usn, name in STUDENT_DATA.items():
-        # Using columns for the actual interactive elements
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
         
-        r1.markdown(f"**{usn}**")
-        r2.text(name)
+        with r1: st.markdown(f"**{usn}**")
+        with r2: st.markdown(f"{name}")
         
-        status = st.session_state.att_records[usn]
-        if status == "P":
-            r3.markdown("<p style='color: green; font-weight: bold;'>✅ Present</p>", unsafe_allow_html=True)
-        elif status == "A":
-            r3.markdown("<p style='color: red; font-weight: bold;'>❌ Absent</p>", unsafe_allow_html=True)
-        else:
-            r3.markdown("<p style='color: gray;'>Pending</p>", unsafe_allow_html=True)
+        with r3:
+            status = st.session_state.att_records[usn]
+            if status == "P":
+                st.markdown("<div style='background-color:#d4edda; color:#155724; padding:5px; border-radius:5px; text-align:center;'>✅ Present</div>", unsafe_allow_html=True)
+            elif status == "A":
+                st.markdown("<div style='background-color:#f8d7da; color:#721c24; padding:5px; border-radius:5px; text-align:center;'>❌ Absent</div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div style='background-color:#fff3cd; color:#856404; padding:5px; border-radius:5px; text-align:center;'>Pending</div>", unsafe_allow_html=True)
         
-        p_btn, a_btn = r4.columns(2)
-        if p_btn.button("P", key=f"p_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "P"
-            st.rerun()
-        if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "A"
-            st.rerun()
-        st.divider()
+        with r4:
+            p_col, a_col = st.columns(2)
+            if p_col.button("Mark P", key=f"p_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "P"
+                st.rerun()
+            if a_col.button("Mark A", key=f"a_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "A"
+                st.rerun()
+        st.markdown("<hr style='margin: 5px 0; border-color: #eee;'>", unsafe_allow_html=True)
 
-    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
+    if st.button("💾 SAVE FINAL ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.warning("Please mark all students.")
+            st.warning("All students must be marked before saving.")
         else:
             st.balloons()
-            st.success("Successfully Saved.")
+            st.success("Attendance records saved to database.")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
 with tab2:
-    st.markdown("### 📊 Subject Dashboard")
-    st.info("Records will appear here once saved to the database.")
+    st.markdown("### 📊 Subject Insights")
+    st.info("Analytics data will populate once records are stored in the CSV database.")
