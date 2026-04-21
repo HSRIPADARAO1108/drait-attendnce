@@ -36,7 +36,6 @@ def load_records():
 
 def save_records_to_csv(date_str, subject, records):
     df_existing = load_records()
-    # Remove existing entry for same date/subject to prevent duplicates
     mask = ~((df_existing["Date"] == date_str) & (df_existing["Subject"] == subject))
     df_existing = df_existing[mask]
     
@@ -54,44 +53,31 @@ def get_base64_of_bin_file(bin_file):
 
 def apply_background(image_file, is_login=False):
     bin_str = get_base64_of_bin_file(image_file)
-    container_css = """
-        [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-    """ if is_login else """
-        .main .block-container {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px; border-radius: 15px; margin-top: 20px;
-        }
-    """
-    st.markdown(f"""
+    # Mobile responsiveness meta tag and CSS
+    st.markdown("""
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-        .stApp {{
-            background-image: url("data:image/jpeg;base64,{bin_str}");
+        .stApp {
+            background-image: url("data:image/jpeg;base64,""" + bin_str + """);
             background-size: cover; background-position: center; background-attachment: fixed;
-        }}
-        {container_css}
-        .badge-p {{ background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 5px; font-weight: bold; }}
-        .badge-a {{ background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 5px; font-weight: bold; }}
+        }
+        /* Make containers more readable on mobile */
+        @media (max-width: 640px) {
+            .main .block-container { padding: 10px !important; }
+            .stTabs [data-baseweb="tab"] { font-size: 14px; padding: 10px 5px; }
+        }
+        .badge-p { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; }
+        .badge-a { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; }
         </style>
     """, unsafe_allow_html=True)
 
 def display_header(is_login_page=False):
     main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
-    sub_title_color = "#FFD700" if is_login_page else "#B45309"
-    body_text_color = "#FFFFFF" if is_login_page else "#374151"
-
     st.markdown(f"""
-        <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
-                M.Tech. - Computer Science & Engineering (SCS)
-            </div>
+        <div style="text-align: center; padding-bottom: 10px;">
+            <h2 style="color: {main_title_color}; margin-bottom: 0; font-size: 22px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h2>
+            <p style="color: gray; font-size: 14px;">M.Tech - SCS Engineering</p>
         </div>
-        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION ---
@@ -101,103 +87,85 @@ if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
+    st.set_page_config(page_title="Login | Dr. AIT", page_icon="🔐", layout="centered")
     apply_background(LOGIN_BG, is_login=True)
     display_header(is_login_page=True)
-
     with st.form("Login"):
-        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
         role = st.selectbox("Select Role", ["Faculty", "CR"])
-        password = st.text_input("Access Password", type="password")
-        submit = st.form_submit_button("Login to System", use_container_width=True)
-        if submit:
+        password = st.text_input("Password", type="password")
+        if st.form_submit_button("Login", use_container_width=True):
             if password == CREDENTIALS.get(role):
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
                 st.rerun()
-            else: st.error("Incorrect Password")
+            else: st.error("Access Denied")
     st.stop()
 
 # --- 5. MAIN INTERFACE ---
 st.set_page_config(page_title="Attendance Portal", layout="wide")
-apply_background(MAIN_BG, is_login=False)
-display_header(is_login_page=False)
+apply_background(MAIN_BG)
+display_header()
 
 with st.sidebar:
-    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
-    if st.button("🚪 Logout", type="primary", use_container_width=True):
+    st.write(f"Logged in: **{st.session_state.user_role}**")
+    if st.button("🚪 Logout", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
-    st.divider()
-    df_current = load_records()
-    if not df_current.empty:
-        csv = df_current.to_csv(index=False).encode('utf-8')
-        st.download_button("📂 Download All Records", csv, "attendance.csv", "text/csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Attendance", "📊 Analytics"])
 
 with tab1:
-    st.markdown("### 📝 Mark Daily Attendance")
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1: sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
-    with c2: dt = st.date_input("Date", date.today())
-    with c3: 
-        if st.button("✅ Mark All Present", use_container_width=True):
-            for usn in STUDENT_DATA.keys(): st.session_state.att_records[usn] = "P"
-            st.rerun()
+    sub = st.selectbox("Select Subject", list(SUBJECT_INFO.keys()))
+    # RESTRICTION: min_value=date.today() prevents choosing previous dates
+    dt = st.date_input("Date", value=date.today(), min_value=date.today())
     
-    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    if st.button("Mark All Present", type="secondary", use_container_width=True):
+        for usn in STUDENT_DATA.keys(): st.session_state.att_records[usn] = "P"
+        st.rerun()
 
-    # Live Metrics
-    p_count = list(st.session_state.att_records.values()).count("P")
-    a_count = list(st.session_state.att_records.values()).count("A")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Present", p_count)
-    m2.metric("Absent", a_count)
-    m3.metric("Total", len(STUDENT_DATA))
-
-    st.markdown("""<div style="background:#1E3A8A; color:white; padding:10px; border-radius:8px; display:flex; font-weight:bold;">
-                <div style="flex:1.5;">USN</div><div style="flex:3;">NAME</div><div style="flex:1.5;">STATUS</div><div style="flex:2;">ACTION</div></div>""", unsafe_allow_html=True)
+    st.divider()
     
+    # List for mobile
     for usn, name in STUDENT_DATA.items():
-        r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-        r1.text(usn)
-        r2.markdown(f"**{name}**")
-        
-        status = st.session_state.att_records[usn]
-        if status == "P": r3.markdown('<span class="badge-p">Present</span>', unsafe_allow_html=True)
-        elif status == "A": r3.markdown('<span class="badge-a">Absent</span>', unsafe_allow_html=True)
-        else: r3.info("Pending")
-        
-        btn_p, btn_a = r4.columns(2)
-        if btn_p.button("P", key=f"p_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "P"; st.rerun()
-        if btn_a.button("A", key=f"a_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "A"; st.rerun()
+        with st.container():
+            col1, col2 = st.columns([2, 1])
+            status = st.session_state.att_records[usn]
+            
+            with col1:
+                st.markdown(f"**{name}**")
+                st.caption(usn)
+            
+            with col2:
+                if status == "P": st.markdown('<span class="badge-p">PRESENT</span>', unsafe_allow_html=True)
+                elif status == "A": st.markdown('<span class="badge-a">ABSENT</span>', unsafe_allow_html=True)
+                else: st.caption("Pending")
 
-    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
+            b1, b2 = st.columns(2)
+            if b1.button(f"P", key=f"p_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "P"; st.rerun()
+            if b2.button(f"A", key=f"a_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "A"; st.rerun()
+            st.markdown("---")
+
+    if st.button("💾 SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.warning("Please mark all students before saving.")
+            st.error("Mark all students first!")
         else:
             save_records_to_csv(str(dt), sub, st.session_state.att_records)
             st.balloons()
-            st.success(f"Attendance for {sub} saved successfully!")
+            st.success("Saved!")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
 with tab2:
-    st.markdown("### 📊 Subject Dashboard")
     df = load_records()
     if df.empty:
-        st.info("No records found in database.")
+        st.info("No data available yet.")
     else:
-        # Subject-wise percentage
-        stats = df.groupby("Subject")["Status"].apply(lambda x: (x == "P").sum() / len(x) * 100).reset_index()
-        for _, row in stats.iterrows():
-            st.write(f"**{row['Subject']}**")
-            st.progress(row['Status'] / 100)
-            st.caption(f"Average Attendance: {row['Status']:.1f}%")
+        st.subheader("Subject-wise Attendance (%)")
+        # Visual Graph
+        sub_stats = df.groupby("Subject")["Status"].apply(lambda x: (x == "P").sum() / len(x) * 100)
+        st.bar_chart(sub_stats)
         
-        st.divider()
-        st.markdown("### Individual Student Performance")
-        student_pivot = df.groupby(["USN", "Name"])["Status"].apply(lambda x: round((x == "P").sum() / len(x) * 100, 1)).reset_index()
-        st.dataframe(student_pivot.sort_values("Status", ascending=False), use_container_width=True, hide_index=True)
+        with st.expander("View Detailed Table"):
+            student_perf = df.groupby(["Name"])["Status"].apply(lambda x: round((x == "P").sum() / len(x) * 100, 1)).reset_index()
+            st.dataframe(student_perf.sort_values("Status", ascending=False), use_container_width=True)
