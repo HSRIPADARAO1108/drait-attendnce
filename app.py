@@ -25,8 +25,8 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGO_FILE = "logo.png"       
-BG_FILE = "login.jpeg"  # Updated filename
+LOGIN_BG = "login.jpeg"       # External building image
+MAIN_BG = "after_login.jpg"    # Internal hallway image
 
 # --- 2. BACKGROUND IMAGE HELPER ---
 def get_base64_of_bin_file(bin_file):
@@ -34,30 +34,54 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
+def apply_background(image_file, is_login=False):
+    if os.path.exists(image_file):
+        bin_str = get_base64_of_bin_file(image_file)
+        # Login card is smaller/centered; Main container is wider with a white overlay for readability
+        container_css = """
+            [data-testid="stVerticalBlock"] > div:has(div.stForm) {
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            }
+        """ if is_login else """
+            .main .block-container {
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 30px;
+                border-radius: 15px;
+                margin-top: 20px;
+            }
+        """
+        st.markdown(f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/jpeg;base64,{bin_str}");
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+            {container_css}
+            </style>
+        """, unsafe_allow_html=True)
+
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
-    # If on login page, we use white text to stand out against the background
     main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
     sub_title_color = "#FFD700" if is_login_page else "#B45309"
     body_text_color = "#FFFFFF" if is_login_page else "#374151"
 
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        if os.path.exists(LOGO_FILE):
-            st.image(LOGO_FILE, width=150)
-            
-    with col2:
-        st.markdown(f"""
-            <div style="text-align: left;">
-                <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-                <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-                <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-                <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
-                    M.Tech. - Computer Science & Engineering (SCS)
-                </div>
+    st.markdown(f"""
+        <div style="text-align: left;">
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
+            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
+                M.Tech. - Computer Science & Engineering (SCS)
             </div>
-        """, unsafe_allow_html=True)
-    st.markdown("<hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>", unsafe_allow_html=True)
+        </div>
+        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
+    """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION GATE ---
 if 'authenticated' not in st.session_state:
@@ -67,29 +91,7 @@ if 'att_records' not in st.session_state:
 
 if not st.session_state.authenticated:
     st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
-
-    if os.path.exists(BG_FILE):
-        bin_str = get_base64_of_bin_file(BG_FILE)
-        st.markdown(f"""
-            <style>
-            .stApp {{
-                background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover;
-                background-position: center;
-                background-attachment: fixed;
-            }}
-            /* Transparent Login Card */
-            [data-testid="stVerticalBlock"] > div:has(div.stForm) {{
-                background-color: rgba(255, 255, 255, 0.9);
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            }}
-            </style>
-        """, unsafe_allow_html=True)
-    else:
-        st.error(f"Background image '{BG_FILE}' not found.")
-
+    apply_background(LOGIN_BG, is_login=True)
     display_header(is_login_page=True)
 
     with st.form("Login"):
@@ -109,6 +111,7 @@ if not st.session_state.authenticated:
 
 # --- 5. MAIN INTERFACE (Post-Login) ---
 st.set_page_config(page_title="Attendance Portal", layout="wide")
+apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
@@ -159,7 +162,6 @@ with tab1:
         if None in st.session_state.att_records.values():
             st.warning("Please mark all students.")
         else:
-            # Data saving logic...
             st.balloons()
             st.success("Successfully Saved.")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
