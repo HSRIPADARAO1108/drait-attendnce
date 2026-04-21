@@ -25,8 +25,8 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGIN_BG = "login.jpeg"       # External building image
-MAIN_BG = "after_login.jpg"    # Internal hallway image
+LOGIN_BG = "login.jpeg"       
+MAIN_BG = "after_login.jpg"    
 
 # --- 2. BACKGROUND IMAGE HELPER ---
 def get_base64_of_bin_file(bin_file):
@@ -38,33 +38,19 @@ def apply_background(image_file, is_login=False):
     if os.path.exists(image_file):
         bin_str = get_base64_of_bin_file(image_file)
         
-        # Configure the blur and watermark effect
+        # Define visibility parameters
         if is_login:
             blur_amount = "0px"
             opacity = "1.0"
             brightness = "1.0"
+            sidebar_opacity = "1.0"
         else:
-            # Strong blur and faded watermark effect for the main app
-            blur_amount = "12px"
-            opacity = "0.3"  # Lower opacity for watermark effect
-            brightness = "1.2" # Slightly brighter to look "washed out"
+            # Applying 50% visibility (0.5 opacity) and moderate blur
+            blur_amount = "8px"
+            opacity = "0.5" 
+            brightness = "1.1"
+            sidebar_opacity = "0.3" # Makes sidebar more transparent to see image
         
-        container_css = """
-            [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            }
-        """ if is_login else """
-            .main .block-container {
-                background-color: rgba(255, 255, 255, 0.92);
-                padding: 30px;
-                border-radius: 15px;
-                margin-top: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            }
-        """
         st.markdown(f"""
             <style>
             .stApp {{
@@ -73,7 +59,7 @@ def apply_background(image_file, is_login=False):
                 background-position: center;
                 background-attachment: fixed;
             }}
-            /* Enhanced Blur & Watermark Pseudo-element */
+            /* Watermark effect for the entire app background */
             .stApp::before {{
                 content: "";
                 position: fixed;
@@ -83,7 +69,28 @@ def apply_background(image_file, is_login=False):
                 opacity: {opacity};
                 z-index: -1;
             }}
-            {container_css}
+            
+            /* TARGETING SIDEBAR: Make it transparent to show background image */
+            [data-testid="stSidebar"] {{
+                background-color: rgba(255, 255, 255, {sidebar_opacity});
+            }}
+
+            /* Content container styling */
+            .main .block-container {{
+                background-color: rgba(255, 255, 255, 0.85);
+                padding: 30px;
+                border-radius: 15px;
+                margin-top: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }}
+
+            /* Login box styling */
+            [data-testid="stVerticalBlock"] > div:has(div.stForm) {{
+                background-color: rgba(255, 255, 255, 0.95);
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            }}
             </style>
         """, unsafe_allow_html=True)
 
@@ -137,6 +144,7 @@ apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
+    # Sidebar text now sits on top of the 50% visible background image
     st.markdown(f"### Welcome, \n**{st.session_state.user_role}**")
     if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
