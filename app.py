@@ -25,8 +25,8 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGIN_BG = "login.jpeg"       # External building image
-MAIN_BG = "after_login.jpg"    # Internal hallway image
+LOGIN_BG = "login.jpeg"       
+MAIN_BG = "after_login.jpg"    
 
 # --- 2. BACKGROUND IMAGE HELPER ---
 def get_base64_of_bin_file(bin_file):
@@ -37,31 +37,51 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     if os.path.exists(image_file):
         bin_str = get_base64_of_bin_file(image_file)
-        # Login card is smaller/centered; Main container is wider with a white overlay for readability
+        
+        # Blur only applied to MAIN_BG (after login)
+        blur_amount = "0px" if is_login else "5px"
+        
         container_css = """
             [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-                background-color: rgba(255, 255, 255, 0.9);
+                background-color: rgba(255, 255, 255, 0.95);
                 padding: 40px;
                 border-radius: 20px;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             }
         """ if is_login else """
             .main .block-container {
-                background-color: rgba(255, 255, 255, 0.9);
-                padding: 30px;
+                background-color: rgba(255, 255, 255, 0.92);
+                padding: 40px;
                 border-radius: 15px;
-                margin-top: 20px;
+                margin-top: 30px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             }
         """
+        
         st.markdown(f"""
             <style>
             .stApp {{
-                background-image: url("data:image/jpeg;base64,{bin_str}");
+                background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), 
+                            url("data:image/jpeg;base64,{bin_str}");
                 background-size: cover;
                 background-position: center;
                 background-attachment: fixed;
             }}
+            /* This part creates the blur effect for the background only */
+            .stApp::before {{
+                content: "";
+                position: fixed;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: inherit;
+                filter: blur({blur_amount});
+                z-index: -1;
+            }}
             {container_css}
+            /* Styling for the P/A buttons to make them compact */
+            div.stButton > button {{
+                width: 100%;
+                padding: 2px;
+            }}
             </style>
         """, unsafe_allow_html=True)
 
@@ -136,20 +156,31 @@ with tab1:
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
-    # Table Header
+    # Improved Table Header
+    st.markdown("---")
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
+    h1.markdown("**USN**")
+    h2.markdown("**NAME**")
+    h3.markdown("**CURRENT STATUS**")
+    h4.markdown("**MARK ATTENDANCE**")
+    st.markdown("---")
     
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-        r1.text(usn)
+        
+        # Row Content
+        r1.markdown(f"`{usn}`")
         r2.markdown(f"**{name}**")
         
         status = st.session_state.att_records[usn]
-        if status == "P": r3.success("Present")
-        elif status == "A": r3.error("Absent")
-        else: r3.info("Pending")
+        if status == "P":
+            r3.markdown("<span style='color: green; font-weight: bold;'>✅ Present</span>", unsafe_allow_html=True)
+        elif status == "A":
+            r3.markdown("<span style='color: red; font-weight: bold;'>❌ Absent</span>", unsafe_allow_html=True)
+        else:
+            r3.markdown("<span style='color: gray;'>⏳ Pending</span>", unsafe_allow_html=True)
         
+        # Buttons
         p_btn, a_btn = r4.columns(2)
         if p_btn.button("P", key=f"p_{usn}"):
             st.session_state.att_records[usn] = "P"
@@ -158,9 +189,10 @@ with tab1:
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
+    st.markdown("---")
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.warning("Please mark all students.")
+            st.warning("Please mark all students before saving.")
         else:
             st.balloons()
             st.success("Successfully Saved.")
@@ -168,4 +200,4 @@ with tab1:
 
 with tab2:
     st.markdown("### 📊 Subject Dashboard")
-    st.info("Records will appear here once saved to the database.")
+    st.info("Analytics data will be displayed here.")
