@@ -22,6 +22,7 @@ SUBJECT_INFO = {
     "MCS254: Agile Technologies": "Dr. Nandini N."
 }
 
+# Access Credentials
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
 
@@ -49,6 +50,7 @@ if not st.session_state.authenticated:
 # --- 3. MAIN APP INTERFACE ---
 st.set_page_config(page_title="Attendance & Dashboard", layout="wide")
 
+# Sidebar
 with st.sidebar:
     st.title("Control Panel")
     st.write(f"Logged in: **{st.session_state.user_role}**")
@@ -60,6 +62,7 @@ with st.sidebar:
         with open(FILE_PATH, "rb") as f:
             st.download_button("Download CSV Database", f, "attendance_master.csv", "text/csv")
 
+# Tabs for Navigation
 tab1, tab2 = st.tabs(["📝 Mark Attendance", "📊 Subject Master Dashboard"])
 
 # --- TAB 1: ATTENDANCE MARKING ---
@@ -74,6 +77,7 @@ with tab1:
     st.info(f"**Faculty in Charge:** {SUBJECT_INFO[selected_sub]}")
     st.divider()
 
+    # Table Header
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
     h1.write("**USN**"); h2.write("**Name**"); h3.write("**Status**"); h4.write("**Action**")
     
@@ -171,10 +175,24 @@ with tab2:
             st.dataframe(summary_df, use_container_width=True, hide_index=True)
             
             st.divider()
-            # Individual History Search
+            # Individual History Search with USN + Name
             st.write("#### View Individual Detailed History")
-            search_usn = st.selectbox("Select USN to see specific dates", list(STUDENT_DATA.keys()))
-            hist_df = sub_df[sub_df['USN'] == search_usn]
-            st.table(hist_df[['Date', 'Status', 'Marked_By']])
+            
+            # Format student names for the selectbox: "USN - Name"
+            student_options = [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
+            selected_option = st.selectbox("Select Student to see specific dates", student_options)
+            
+            # Extract the USN back out of the selected string
+            search_usn = selected_option.split(" - ")[0]
+            search_name = STUDENT_DATA[search_usn]
+            
+            st.write(f"Showing detailed records for: **{search_name} ({search_usn})**")
+            
+            hist_df = sub_df[sub_df['USN'] == search_usn].sort_values(by='Date', ascending=False)
+            
+            if not hist_df.empty:
+                st.table(hist_df[['Date', 'Status', 'Marked_By']])
+            else:
+                st.info(f"No records found for {search_name} in this subject.")
         else:
             st.info("No classes recorded for this subject yet.")
