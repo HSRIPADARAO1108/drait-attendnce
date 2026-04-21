@@ -25,15 +25,21 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGO_FILE = "logo.png"       # Logo from your previous uploads
-BG_FILE = "login_bg.png"      # This is the college image from your current upload
+LOGO_FILE = "logo.png"       
+BG_FILE = "login.jpeg"  # Updated filename
 
-# --- 2. HEADER WITH LOGO & STYLING ---
-def display_header(is_dark=False):
-    # CSS adjusted for visibility on background image
-    txt_color = "white" if is_dark else "#1F2937"
-    badge_bg = "rgba(255, 255, 255, 0.2)" if is_dark else "#DBEAFE"
-    badge_txt = "white" if is_dark else "#1F2937"
+# --- 2. BACKGROUND IMAGE HELPER ---
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# --- 3. HEADER COMPONENT ---
+def display_header(is_login_page=False):
+    # If on login page, we use white text to stand out against the background
+    main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
+    sub_title_color = "#FFD700" if is_login_page else "#B45309"
+    body_text_color = "#FFFFFF" if is_login_page else "#374151"
 
     col1, col2 = st.columns([1, 4])
     with col1:
@@ -42,113 +48,92 @@ def display_header(is_dark=False):
             
     with col2:
         st.markdown(f"""
-            <div style="text-align: left; color: {txt_color};">
-                <h1 style="color: #1E3A8A; margin-bottom: 0;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-                <h3 style="color: #B45309; margin-top: 0;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-                <p style="font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-                <p style="color: {badge_txt}; font-size: 1.1em; background-color: {badge_bg}; display: inline-block; padding: 2px 10px; border-radius: 5px;">
+            <div style="text-align: left;">
+                <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+                <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+                <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
+                <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
                     M.Tech. - Computer Science & Engineering (SCS)
-                </p>
+                </div>
             </div>
         """, unsafe_allow_html=True)
-    st.markdown("<hr style='border: 2px solid #1E3A8A;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>", unsafe_allow_html=True)
 
-# --- 3. BACKGROUND IMAGE HELPER ---
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# --- 4. AUTHENTICATION GATE (with college background) ---
+# --- 4. AUTHENTICATION GATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Dr. AIT Login", page_icon="🔐")
+    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
 
-    # Set up background and login card styling
     if os.path.exists(BG_FILE):
-        bg_img_base64 = get_base64_of_bin_file(BG_FILE)
-        
+        bin_str = get_base64_of_bin_file(BG_FILE)
         st.markdown(f"""
             <style>
-            [data-testid="stAppViewContainer"] > .main {{
-                background-image: url("data:image/png;base64,{bg_img_base64}");
+            .stApp {{
+                background-image: url("data:image/jpeg;base64,{bin_str}");
                 background-size: cover;
                 background-position: center;
-                background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            
-            /* Center and style the login form */
-            [data-testid="stContainer"] {{
-                background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white card */
-                padding: 30px;
-                border-radius: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                max-width: 500px;
-                margin: auto;
-                position: relative;
-                top: 50px;
+            /* Transparent Login Card */
+            [data-testid="stVerticalBlock"] > div:has(div.stForm) {{
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             }}
             </style>
         """, unsafe_allow_html=True)
     else:
-        # Fallback if image isn't found
-        st.warning(f"⚠️ Login background image missing. Rename your uploaded image to '{BG_FILE}' and place in the project folder.")
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.error(f"Background image '{BG_FILE}' not found.")
 
-    display_header(is_dark=True) # Text adjusted for background
-    
-    # Authenticate via a central container
-    with st.container():
-        st.subheader("🔐 Staff & CR Login")
-        role = st.selectbox("Select User Role", ["Faculty", "CR"])
-        password = st.text_input("Enter Access Code", type="password")
-        if st.button("Authorize Access", use_container_width=True, type="primary"):
+    display_header(is_login_page=True)
+
+    with st.form("Login"):
+        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
+        role = st.selectbox("Select Role", ["Faculty", "CR"])
+        password = st.text_input("Access Password", type="password")
+        submit = st.form_submit_button("Login to System", use_container_width=True)
+        
+        if submit:
             if password == CREDENTIALS[role]:
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
                 st.rerun()
             else:
-                st.error("Invalid Credentials.")
-    
+                st.error("Incorrect Password")
     st.stop()
 
-# --- 5. MAIN INTERFACE (after login) ---
-st.set_page_config(page_title="Dr. AIT Attendance Portal", layout="wide")
-display_header()
-
-# Reset background/styles for main app (ensuring it's clean)
-st.markdown("<style>[data-testid='stAppViewContainer'] > .main {background-image: none;}</style>", unsafe_allow_html=True)
+# --- 5. MAIN INTERFACE (Post-Login) ---
+st.set_page_config(page_title="Attendance Portal", layout="wide")
+display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown("### ⚙️ User Settings")
-    st.success(f"**Session:** {st.session_state.user_role}")
-    if st.button("Logout", type="primary", use_container_width=True):
+    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
+    if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("📂 Export Master CSV", f, "attendance_master.csv", "text/csv", use_container_width=True)
+            st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📈 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
 
-# --- TAB 1: MARKING ---
 with tab1:
     st.markdown("### 📝 Mark Daily Attendance")
     c1, c2 = st.columns(2)
     with c1:
-        selected_sub = st.selectbox("Select Subject", list(SUBJECT_INFO.keys()))
+        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
     with c2:
-        att_date = st.date_input("Date of Lecture", date.today())
+        dt = st.date_input("Date", date.today())
     
-    st.markdown(f"<div style='background-color: #FEF3C7; padding: 10px; border-radius: 5px; border-left: 5px solid #D97706;'><strong>Faculty:</strong> {SUBJECT_INFO[selected_sub]}</div>", unsafe_allow_html=True)
-    st.divider()
-
+    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    
+    # Table Header
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
     h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     
@@ -158,29 +143,27 @@ with tab1:
         r2.markdown(f"**{name}**")
         
         status = st.session_state.att_records[usn]
-        if status == "P": r3.markdown("<span style='color: green; font-weight: bold;'>PRESENT</span>", unsafe_allow_html=True)
-        elif status == "A": r3.markdown("<span style='color: red; font-weight: bold;'>ABSENT</span>", unsafe_allow_html=True)
-        else: r3.markdown("<span style='color: gray;'>PENDING</span>", unsafe_allow_html=True)
+        if status == "P": r3.success("Present")
+        elif status == "A": r3.error("Absent")
+        else: r3.info("Pending")
         
         p_btn, a_btn = r4.columns(2)
-        if p_btn.button("P", key=f"p_{usn}", help="Mark Present"):
+        if p_btn.button("P", key=f"p_{usn}"):
             st.session_state.att_records[usn] = "P"
             st.rerun()
-        if a_btn.button("A", key=f"a_{usn}", help="Mark Absent"):
+        if a_btn.button("A", key=f"a_{usn}"):
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
-    if st.button("SUBMIT TO DATABASE", type="primary", use_container_width=True):
+    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.error("Please mark every student before submitting.")
+            st.warning("Please mark all students.")
         else:
-            # Data saving logic here...
+            # Data saving logic...
             st.balloons()
-            st.success("Records updated successfully!")
+            st.success("Successfully Saved.")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
-# --- TAB 2: ANALYTICS ---
 with tab2:
-    st.markdown("### 📊 Live Analytics Dashboard")
-    # Analytics display logic here...
-    st.info("Mark attendance in Tab 1 to populate analytics.")
+    st.markdown("### 📊 Subject Dashboard")
+    st.info("Records will appear here once saved to the database.")
