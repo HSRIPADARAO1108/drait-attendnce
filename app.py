@@ -1,6 +1,5 @@
 import streamlit as st
-import pd as pd
-import pandas as pd
+import pandas as pd  # Corrected import
 from datetime import date
 import os
 import base64
@@ -174,7 +173,7 @@ with tab1:
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
     with c2:
-        # UPDATED: Added min_value=date.today() to lock previous dates
+        # LATEST UPDATE: Locked previous dates using min_value
         dt = st.date_input("Date", value=date.today(), min_value=date.today())
     with c3:
         st.markdown("<div style='height: 28px;' class='hide-on-mobile'></div>", unsafe_allow_html=True)
