@@ -42,25 +42,20 @@ def apply_background(image_file, is_login=False):
         container_css = """
             [data-testid="stVerticalBlock"] > div:has(div.stForm) {
                 background-color: rgba(255, 255, 255, 0.9);
-                padding: 40px;
-                border-radius: 20px;
+                padding: 40px; border-radius: 20px;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             }
         """ if is_login else """
             .main .block-container {
                 background-color: rgba(255, 255, 255, 0.9);
-                padding: 30px;
-                border-radius: 15px;
-                margin-top: 20px;
+                padding: 30px; border-radius: 15px; margin-top: 20px;
             }
         """
         st.markdown(f"""
             <style>
             .stApp {{
                 background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover;
-                background-position: center;
-                background-attachment: fixed;
+                background-size: cover; background-position: center; background-attachment: fixed;
             }}
             {container_css}
             </style>
@@ -129,24 +124,29 @@ tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
 
 with tab1:
     st.markdown("### 📝 Mark Daily Attendance")
-    c1, c2 = st.columns(2)
+    
+    # Header Controls
+    c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
     with c2:
-        dt = st.date_input("Date", date.today())
+        # Restriction: Cannot select past dates
+        dt = st.date_input("Date", date.today(), min_value=date.today())
+    with c3:
+        st.write("") # Vertical alignment spacer
+        if st.button("✅ Mark All Present", use_container_width=True):
+            for usn in STUDENT_DATA.keys():
+                st.session_state.att_records[usn] = "P"
+            st.rerun()
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
-    # Table Header
+    # Table Header Labels
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**")
-    h2.write("**NAME**")
-    h3.write("**STATUS**")
-    h4.write("**ACTION**")
-    
+    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     st.divider()
 
-    # Student List Rendering
+    # Attendance List
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
         r1.text(usn)
@@ -171,13 +171,14 @@ with tab1:
     st.divider()
     
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
-        if None in st.session_state.att_records.values():
-            st.warning("Please mark all students before saving.")
+        if dt < date.today():
+            st.error("Cannot save attendance for a past date.")
+        elif None in st.session_state.att_records.values():
+            st.warning("Please ensure all students are marked (P or A) before saving.")
         else:
-            # Code to save to CSV
-            new_data = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
+            new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
                         for u, s in st.session_state.att_records.items()]
-            df_new = pd.DataFrame(new_data)
+            df_new = pd.DataFrame(new_rows)
             
             if os.path.exists(FILE_PATH):
                 df_old = pd.read_csv(FILE_PATH)
@@ -188,8 +189,8 @@ with tab1:
             df_final.to_csv(FILE_PATH, index=False)
             
             st.balloons()
-            st.success("Successfully Saved.")
-            # Reset state for next entry
+            st.success(f"Attendance for {sub} on {dt} saved successfully!")
+            # Reset state
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
             st.rerun()
 
@@ -197,6 +198,7 @@ with tab2:
     st.markdown("### 📊 Subject Dashboard")
     if os.path.exists(FILE_PATH):
         df_display = pd.read_csv(FILE_PATH)
-        st.dataframe(df_display, use_container_width=True)
+        # Filter to show only relevant columns for the dashboard
+        st.dataframe(df_display.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
     else:
-        st.info("Records will appear here once saved to the database.")
+        st.info("No records found. Save attendance to see data here.")
