@@ -37,8 +37,17 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     if os.path.exists(image_file):
         bin_str = get_base64_of_bin_file(image_file)
-        # Apply intense blur to the background itself
-        blur_amount = "0px" if is_login else "10px"
+        
+        # Configure the blur and watermark effect
+        if is_login:
+            blur_amount = "0px"
+            opacity = "1.0"
+            brightness = "1.0"
+        else:
+            # Strong blur and faded watermark effect for the main app
+            blur_amount = "12px"
+            opacity = "0.3"  # Lower opacity for watermark effect
+            brightness = "1.2" # Slightly brighter to look "washed out"
         
         container_css = """
             [data-testid="stVerticalBlock"] > div:has(div.stForm) {
@@ -49,7 +58,7 @@ def apply_background(image_file, is_login=False):
             }
         """ if is_login else """
             .main .block-container {
-                background-color: rgba(255, 255, 255, 0.98);
+                background-color: rgba(255, 255, 255, 0.92);
                 padding: 30px;
                 border-radius: 15px;
                 margin-top: 20px;
@@ -64,13 +73,14 @@ def apply_background(image_file, is_login=False):
                 background-position: center;
                 background-attachment: fixed;
             }}
-            /* This pseudo-element creates the blur effect ONLY on the background */
+            /* Enhanced Blur & Watermark Pseudo-element */
             .stApp::before {{
                 content: "";
                 position: fixed;
                 top: 0; left: 0; width: 100%; height: 100%;
                 background: inherit;
-                filter: blur({blur_amount});
+                filter: blur({blur_amount}) brightness({brightness});
+                opacity: {opacity};
                 z-index: -1;
             }}
             {container_css}
@@ -79,13 +89,12 @@ def apply_background(image_file, is_login=False):
 
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
-    # Ensure high contrast regardless of page
     main_title_color = "#1E3A8A"
     sub_title_color = "#B45309"
     body_text_color = "#374151"
 
     st.markdown(f"""
-        <div style="text-align: left; background-color: rgba(255,255,255,0.8); padding: 10px; border-radius: 10px;">
+        <div style="text-align: left; background-color: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; border-left: 5px solid #1E3A8A;">
             <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px; font-weight: bold;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
             <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
             <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 5px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
@@ -128,7 +137,7 @@ apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
+    st.markdown(f"### Welcome, \n**{st.session_state.user_role}**")
     if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
@@ -150,8 +159,14 @@ with tab1:
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
     # Table Header
-    h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
+    st.markdown("""
+        <div style="display: flex; background-color: #1E3A8A; color: white; padding: 10px; border-radius: 5px; font-weight: bold; margin-bottom: 10px;">
+            <div style="flex: 1.5;">USN</div>
+            <div style="flex: 3;">NAME</div>
+            <div style="flex: 1.5;">STATUS</div>
+            <div style="flex: 2;">ACTION</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
@@ -171,6 +186,7 @@ with tab1:
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
+    st.markdown("---")
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
             st.warning("Please mark all students.")
