@@ -1,6 +1,4 @@
-To include the developer credit in your Streamlit application, I have added a sleek, professional footer that stays pinned to the bottom of the screen. I've also added a mention in the sidebar so it's visible even when scrolling.
-Here is your updated code:
-```python
+
 import streamlit as st
 import pandas as pd
 from datetime import date
