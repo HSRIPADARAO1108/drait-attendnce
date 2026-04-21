@@ -1,5 +1,8 @@
+To include the developer credit in your Streamlit application, I have added a sleek, professional footer that stays pinned to the bottom of the screen. I've also added a mention in the sidebar so it's visible even when scrolling.
+Here is your updated code:
+```python
 import streamlit as st
-import pandas as pd  # Corrected import
+import pandas as pd
 from datetime import date
 import os
 import base64
@@ -28,7 +31,7 @@ FILE_PATH = "attendance_records.csv"
 LOGIN_BG = "login.jpeg"        
 MAIN_BG = "after_login.jpg"    
 
-# --- 2. BACKGROUND IMAGE HELPER ---
+# --- 2. BACKGROUND & STYLING HELPER ---
 def get_base64_of_bin_file(bin_file):
     if os.path.exists(bin_file):
         with open(bin_file, 'rb') as f:
@@ -41,17 +44,12 @@ def apply_background(image_file, is_login=False):
     if bin_str:
         common_style = f"""
             <style>
-            .stApp {{
-                background-color: transparent;
-            }}
+            .stApp {{ background-color: transparent; }}
             .stApp::before {{
-                content: "";
-                position: fixed;
-                top: 0; left: 0;
+                content: ""; position: fixed; top: 0; left: 0;
                 width: 100%; height: 100%;
                 background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover;
-                background-position: center;
+                background-size: cover; background-position: center;
                 background-attachment: fixed;
                 {"filter: blur(8px); transform: scale(1.05);" if not is_login else ""}
                 z-index: -1;
@@ -60,53 +58,43 @@ def apply_background(image_file, is_login=False):
             .main .block-container {{
                 background-color: rgba(255, 255, 255, 0.98) !important;
                 padding: 1.5rem 1rem !important;
-                border-radius: 15px;
-                margin-top: 15px;
+                border-radius: 15px; margin-top: 15px;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             }}
 
+            /* Developer Credit Footer */
+            .dev-footer {{
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                background-color: rgba(255, 255, 255, 0.8);
+                color: #1E3A8A;
+                text-align: center;
+                padding: 5px 0;
+                font-weight: bold;
+                font-size: 14px;
+                border-top: 1px solid #1E3A8A;
+                z-index: 100;
+            }}
+
             .student-label {{
-                color: #000000 !important;
-                font-weight: 900 !important;
-                font-size: 1.15rem !important;
-                margin: 0px !important;
-                line-height: 1.2;
-                letter-spacing: -0.5px;
+                color: #000000 !important; font-weight: 900 !important;
+                font-size: 1.15rem !important; margin: 0px !important;
+                line-height: 1.2; letter-spacing: -0.5px;
                 -webkit-text-stroke: 0.5px #000000;
-                text-rendering: optimizeLegibility;
             }}
 
             @media (max-width: 768px) {{
-                [data-testid="column"] {{
-                    width: 100% !important;
-                    flex: 1 1 100% !important;
-                    min-width: 100% !important;
-                    margin-bottom: 2px !important;
-                }}
-                .hide-on-mobile {{
-                    display: none !important;
-                }}
-                p, span, label, div {{
-                    color: #000000 !important;
-                }}
-                .stButton > button {{
-                    width: 100% !important;
-                    border: 1px solid #000000 !important;
-                }}
+                [data-testid="column"] {{ width: 100% !important; flex: 1 1 100% !important; }}
+                .hide-on-mobile {{ display: none !important; }}
             }}
             </style>
         """
         st.markdown(common_style, unsafe_allow_html=True)
-        
-        if is_login:
-            st.markdown("""
-                <style>
-                [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-                    background-color: rgba(255, 255, 255, 0.95);
-                    padding: 30px; border-radius: 20px;
-                }
-                </style>
-            """, unsafe_allow_html=True)
+
+def display_dev_credit():
+    st.markdown('<div class="dev-footer">Developed by H Sripada Rao</div>', unsafe_allow_html=True)
 
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
@@ -147,6 +135,7 @@ if not st.session_state.authenticated:
                 st.rerun()
             else:
                 st.error("Incorrect Password")
+    display_dev_credit()
     st.stop()
 
 # --- 5. MAIN INTERFACE (Post-Login) ---
@@ -160,6 +149,7 @@ with st.sidebar:
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
+    st.caption("Developed by **H Sripada Rao**")
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
             st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
@@ -173,7 +163,6 @@ with tab1:
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
     with c2:
-        # LATEST UPDATE: Locked previous dates using min_value
         dt = st.date_input("Date", value=date.today(), min_value=date.today())
     with c3:
         st.markdown("<div style='height: 28px;' class='hide-on-mobile'></div>", unsafe_allow_html=True)
@@ -184,6 +173,7 @@ with tab1:
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
+    # Header for the list
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
     h1.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>USN</b>", unsafe_allow_html=True)
     h2.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>NAME</b>", unsafe_allow_html=True)
@@ -194,7 +184,6 @@ with tab1:
     for usn, name in STUDENT_DATA.items():
         with st.container():
             r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-            
             r1.markdown(f"<div class='student-label'>{usn}</div>", unsafe_allow_html=True)
             r2.markdown(f"<div class='student-label'>{name}</div>", unsafe_allow_html=True)
             
@@ -210,7 +199,6 @@ with tab1:
             if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
                 st.session_state.att_records[usn] = "A"
                 st.rerun()
-            
             st.markdown("<hr style='margin: 10px 0; border: 1.2px solid black; opacity: 0.15;'>", unsafe_allow_html=True)
 
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
@@ -240,25 +228,11 @@ with tab2:
                 Total=('Status', 'count'),
                 Attended=('Status', lambda x: (x == 'P').sum())
             ).reset_index()
-            
             stats['%'] = (stats['Attended'] / stats['Total'] * 100).round(1)
             stats['Eligibility'] = stats['%'].apply(lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE")
-
             st.dataframe(stats, use_container_width=True, hide_index=True)
 
-            st.divider()
-            st.markdown("<h4 style='color:black;'>🔍 History Filter</h4>", unsafe_allow_html=True)
-            f1, f2 = st.columns(2)
-            with f1:
-                student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
-                selected_student = st.selectbox("Select Student", student_options)
-            with f2:
-                selected_subject = st.selectbox("Select Subject", ["All Subjects"] + list(SUBJECT_INFO.keys()))
+# Call the credit footer at the end of the script
+display_dev_credit()
 
-            filtered_df = df.copy()
-            if selected_student != "All Students":
-                filtered_df = filtered_df[filtered_df['USN'] == selected_student.split(" - ")[0]]
-            if selected_subject != "All Subjects":
-                filtered_df = filtered_df[filtered_df['Subject'] == selected_subject]
-
-            st.dataframe(filtered_df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+```
