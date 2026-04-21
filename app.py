@@ -27,35 +27,66 @@ FILE_PATH = "attendance_records.csv"
 
 # --- 2. PROFESSIONAL HEADER COMPONENT ---
 def display_header():
-    # Centered Header with shadow and border
+    # Styled Header Container
     st.markdown("""
-        <div style="text-align: center; padding: 20px; background-color: #ffffff; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 8px solid #1E3A8A; margin-bottom: 25px;">
+        <style>
+            .main-header {
+                text-align: center;
+                padding: 30px;
+                background: rgba(255, 255, 255, 0.05); /* Works for dark/light mode */
+                border-radius: 15px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 20px;
+            }
+            .inst-name {
+                color: #1E3A8A; 
+                font-size: 32px; 
+                font-weight: 800; 
+                margin-bottom: 5px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .school-name {
+                color: #D97706; 
+                font-size: 20px; 
+                font-weight: 600; 
+                margin-bottom: 0px;
+            }
+            .program-name {
+                color: #64748B; 
+                font-size: 16px; 
+                font-weight: 500;
+                margin-top: 5px;
+                letter-spacing: 2px;
+            }
+            .badge {
+                background-color: #1E3A8A;
+                color: white;
+                padding: 6px 20px;
+                border-radius: 50px;
+                font-size: 14px;
+                font-weight: 600;
+                display: inline-block;
+                margin-top: 15px;
+                box-shadow: 0 4px 15px rgba(30, 58, 138, 0.3);
+            }
+        </style>
     """, unsafe_allow_html=True)
-    
-    # Center the logo using Streamlit columns
-    h_col1, h_col2, h_col3 = st.columns([1.5, 1, 1.5])
-    with h_col2:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", use_container_width=True)
-        else:
-            st.warning("Logo 'logo.png' missing.")
 
-    # Departmental Text
-    st.markdown("""
-            <h1 style="color: #1E3A8A; margin-top: 15px; font-family: 'Trebuchet MS', sans-serif; font-size: 32px; letter-spacing: 1px;">
-                Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY
-            </h1>
-            <h3 style="color: #B45309; margin-bottom: 5px; font-weight: 700;">
-                SCHOOL OF COMPUTER SCIENCE & ENGINEERING
-            </h3>
-            <h4 style="color: #4B5563; margin-top: 0; font-weight: 500;">
-                COMPUTER SCIENCE & ENGINEERING PROGRAM
-            </h4>
-            <div style="display: inline-block; background-color: #1E3A8A; color: white; padding: 8px 30px; border-radius: 25px; font-weight: bold; font-size: 1.1em; margin-top: 15px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);">
-                M.Tech. - Computer Science & Engineering (SCS)
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    # Wrap content in the styled div
+    st.markdown('<div class="main-header">', unsafe_allow_html=True)
+    
+    # Centering the Logo
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col2:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width=120)
+    
+    st.markdown('<div class="inst-name">Dr. Ambedkar Institute of Technology</div>', unsafe_allow_html=True)
+    st.markdown('<div class="school-name">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</div>', unsafe_allow_html=True)
+    st.markdown('<div class="program-name">COMPUTER SCIENCE & ENGINEERING PROGRAM</div>', unsafe_allow_html=True)
+    st.markdown('<div class="badge">M.Tech. - Computer Science & Engineering (SCS)</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. AUTHENTICATION LOGIC ---
 if 'authenticated' not in st.session_state:
@@ -63,60 +94,56 @@ if 'authenticated' not in st.session_state:
 if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
-st.set_page_config(page_title="Dr. AIT Attendance Portal", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Dr. AIT Attendance", layout="wide", page_icon="🎓")
 
 if not st.session_state.authenticated:
     display_header()
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container():
-        st.markdown("<div style='max-width: 500px; margin: auto; background-color: white; padding: 30px; border-radius: 10px; border: 1px solid #E5E7EB;'>", unsafe_allow_html=True)
-        st.subheader("🔐 Department Login")
-        role = st.selectbox("Select User Role", ["Faculty", "CR"])
-        password = st.text_input("Access Code", type="password")
-        if st.button("Login to Portal", use_container_width=True, type="primary"):
-            if password == CREDENTIALS[role]:
-                st.session_state.authenticated, st.session_state.user_role = True, role
-                st.rerun()
-            else:
-                st.error("Invalid Code. Please try again.")
-        st.markdown("</div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1.5, 1])
+        with c2:
+            with st.form("Login"):
+                st.subheader("🔐 Secure Portal Login")
+                role = st.selectbox("Role", ["Faculty", "CR"])
+                password = st.text_input("Access Code", type="password")
+                if st.form_submit_button("Access System", use_container_width=True):
+                    if password == CREDENTIALS[role]:
+                        st.session_state.authenticated, st.session_state.user_role = True, role
+                        st.rerun()
+                    else:
+                        st.error("Access Denied.")
     st.stop()
 
 # --- 4. MAIN APP ---
 display_header()
 
 with st.sidebar:
-    st.markdown("### 👤 Active User")
-    st.info(f"**Logged in as:** {st.session_state.user_role}")
-    if st.button("Logout", type="primary", use_container_width=True):
+    st.markdown("### 👤 User Info")
+    st.info(f"**Role:** {st.session_state.user_role}")
+    if st.button("🚪 Logout", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("📂 Download CSV Database", f, "attendance_records.csv", "text/csv", use_container_width=True)
+            st.download_button("💾 Backup Data (CSV)", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Master Analytics"])
+tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
 
-# --- TAB 1: MARKING ATTENDANCE ---
+# --- TAB 1: MARKING ---
 with tab1:
-    st.markdown("### 📝 Mark Daily Attendance")
-    row1_c1, row1_c2 = st.columns(2)
-    with row1_c1:
-        selected_sub = st.selectbox("Select Subject", list(SUBJECT_INFO.keys()))
-    with row1_c2:
-        att_date = st.date_input("Date of Session", date.today())
+    st.markdown("### 📝 Active Attendance Sheet")
+    c1, c2 = st.columns(2)
+    with c1:
+        selected_sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
+    with c2:
+        att_date = st.date_input("Date", date.today())
     
-    st.markdown(f"""
-        <div style='background-color: #FEF3C7; padding: 15px; border-radius: 8px; border-left: 6px solid #D97706; color: #92400E;'>
-            <strong>Faculty in Charge:</strong> {SUBJECT_INFO[selected_sub]}
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<div style='padding:10px; border-radius:5px; background:rgba(217, 119, 6, 0.1); border-left: 5px solid #D97706; color: #D97706;'><b>Instructor:</b> {SUBJECT_INFO[selected_sub]}</div>", unsafe_allow_html=True)
     st.divider()
 
-    # Table Header
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**"); h2.write("**STUDENT NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
+    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
@@ -124,9 +151,9 @@ with tab1:
         r2.markdown(f"**{name}**")
         
         status = st.session_state.att_records[usn]
-        if status == "P": r3.markdown("<span style='color: #059669; font-weight: bold;'>PRESENT</span>", unsafe_allow_html=True)
-        elif status == "A": r3.markdown("<span style='color: #DC2626; font-weight: bold;'>ABSENT</span>", unsafe_allow_html=True)
-        else: r3.markdown("<span style='color: #6B7280;'>PENDING</span>", unsafe_allow_html=True)
+        if status == "P": r3.success("Present")
+        elif status == "A": r3.error("Absent")
+        else: r3.warning("Pending")
         
         p_btn, a_btn = r4.columns(2)
         if p_btn.button("P", key=f"p_{usn}"):
@@ -136,9 +163,9 @@ with tab1:
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
-    if st.button("SUBMIT ATTENDANCE TO ARCHIVE", type="primary", use_container_width=True):
+    if st.button("🔒 Finalize Records", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.error("⚠️ All students must be marked before submission.")
+            st.error("Please mark all students.")
         else:
             new_rows = []
             for usn, stat in st.session_state.att_records.items():
@@ -156,60 +183,28 @@ with tab1:
             else:
                 df_final = df_new
             
-            # Remove duplicate marking for the same student/day/subject
             df_final = df_final.drop_duplicates(subset=['Date', 'Subject', 'USN'], keep='last')
             df_final.to_csv(FILE_PATH, index=False)
             st.balloons()
-            st.success("Attendance Record Finalized Successfully!")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
-# --- TAB 2: ANALYTICS DASHBOARD ---
+# --- TAB 2: ANALYTICS ---
 with tab2:
-    st.markdown("### 📊 Class Analytics Dashboard")
     if not os.path.exists(FILE_PATH):
-        st.warning("No records found. Please mark attendance first.")
+        st.warning("No database found.")
     else:
         df = pd.read_csv(FILE_PATH)
-        df['Date'] = df['Date'].astype(str)
-        
-        sel_sub = st.selectbox("Select Subject to Review", list(SUBJECT_INFO.keys()), key="rev_sub")
-        
+        sel_sub = st.selectbox("View Subject Report", list(SUBJECT_INFO.keys()))
         sub_df = df[df['Subject'] == sel_sub]
-        total_classes = sub_df['Date'].nunique()
+        total = sub_df['Date'].nunique()
         
-        m1, m2 = st.columns(2)
-        m1.metric("Total Classes Conducted", total_classes)
+        st.metric("Total Classes Conducted", total)
         
-        if total_classes > 0:
+        if total > 0:
             summary = []
             for usn, name in STUDENT_DATA.items():
-                student_sub_data = sub_df[sub_df['USN'] == usn]
-                present_days = student_sub_data[student_sub_data['Status'] == 'P']['Date'].nunique()
-                perc = (present_days / total_classes * 100)
-                
-                summary.append({
-                    "USN": usn, "Student Name": name, 
-                    "Present": present_days, "Absent": total_classes - present_days,
-                    "Percentage": f"{perc:.1f}%",
-                    "Status": "✅ OK" if perc >= 75 else "🔴 SHORTAGE"
-                })
+                p = sub_df[sub_df['USN'] == usn][sub_df['Status'] == 'P']['Date'].nunique()
+                perc = (p/total*100)
+                summary.append({"USN": usn, "Name": name, "Attendance %": f"{perc:.1f}%", "Status": "✅ OK" if perc >= 75 else "⚠️ Shortage"})
             
-            # Display colored table
             st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
-            
-            st.divider()
-            st.markdown("#### 🔍 Individual Detailed Log")
-            
-            # Selection with Name + USN
-            student_list = [f"{u} - {n}" for u, n in STUDENT_DATA.items()]
-            sel_st = st.selectbox("Search for Student History", student_list)
-            search_usn = sel_st.split(" - ")[0]
-            
-            st.write(f"History for: **{STUDENT_DATA[search_usn]} ({search_usn})**")
-            h_df = sub_df[sub_df['USN'] == search_usn].sort_values(by='Date', ascending=False)
-            if not h_df.empty:
-                st.table(h_df[['Date', 'Status', 'Marked_By']])
-            else:
-                st.info("No data available for this student.")
-        else:
-            st.info("No classes have been recorded for this subject yet.")
