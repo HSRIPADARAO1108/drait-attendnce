@@ -25,7 +25,7 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGIN_BG = "login.jpeg"       
+LOGIN_BG = "login.jpeg"        
 MAIN_BG = "after_login.jpg"    
 
 # --- 2. BACKGROUND IMAGE HELPER ---
@@ -39,49 +39,49 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     bin_str = get_base64_of_bin_file(image_file)
     if bin_str:
-        if is_login:
-            # Login page: no blur, normal background
-            st.markdown(f"""
-                <style>
-                .stApp {{
-                    background-image: url("data:image/jpeg;base64,{bin_str}");
-                    background-size: cover;
-                    background-position: center;
-                    background-attachment: fixed;
-                }}
-                [data-testid="stVerticalBlock"] > div:has(div.stForm) {{
-                    background-color: rgba(255, 255, 255, 0.9);
-                    padding: 40px; border-radius: 20px;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-        else:
-            # After login: blurred background using a pseudo-element overlay trick
-            st.markdown(f"""
-                <style>
-                .stApp {{
-                    background-color: transparent;
-                }}
-                .stApp::before {{
-                    content: "";
-                    position: fixed;
-                    top: 0; left: 0;
-                    width: 100%; height: 100%;
-                    background-image: url("data:image/jpeg;base64,{bin_str}");
-                    background-size: cover;
-                    background-position: center;
-                    background-attachment: fixed;
-                    filter: blur(6px);
-                    transform: scale(1.05);
-                    z-index: -1;
-                }}
-                .main .block-container {{
-                    background-color: rgba(255, 255, 255, 0.9);
-                    padding: 30px; border-radius: 15px; margin-top: 20px;
-                }}
-                </style>
-            """, unsafe_allow_html=True)
+        # Added Responsive Media Queries for Mobile Screens
+        responsive_css = """
+        <style>
+            /* Apply background image */
+            .stApp {
+                background-image: url("data:image/jpeg;base64,""" + bin_str + """);
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }
+            
+            /* Responsive layout for the main container */
+            .main .block-container {
+                background-color: rgba(255, 255, 255, 0.92);
+                padding: 1.5rem !important;
+                border-radius: 15px;
+                margin-top: 20px;
+                max-width: 95%;
+            }
+
+            /* Adjust columns for mobile */
+            @media (max-width: 768px) {
+                [data-testid="column"] {
+                    width: 100% !important;
+                    flex: 1 1 100% !important;
+                    min-width: 100% !important;
+                    margin-bottom: 10px;
+                }
+                
+                /* Hide headers on mobile to prevent clutter */
+                .mobile-header-hide {
+                    display: none;
+                }
+                
+                /* Make buttons larger for touch */
+                .stButton > button {
+                    width: 100% !important;
+                    height: 50px !important;
+                }
+            }
+        </style>
+        """
+        st.markdown(responsive_css, unsafe_allow_html=True)
 
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
@@ -91,14 +91,11 @@ def display_header(is_login_page=False):
 
     st.markdown(f"""
         <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
-                M.Tech. - Computer Science & Engineering (SCS)
-            </div>
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 24px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 18px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px; font-size: 14px;">M.Tech. SCS PROGRAM</p>
         </div>
-        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
+        <hr style='border: 1px solid #1E3A8A; margin: 10px 0;'>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION GATE ---
@@ -152,7 +149,7 @@ with tab1:
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
     with c2:
-        dt = st.date_input("Date", date.today(), min_value=date.today())
+        dt = st.date_input("Date", date.today())
     with c3:
         st.write("") 
         if st.button("✅ Mark All Present", use_container_width=True):
@@ -162,14 +159,18 @@ with tab1:
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
-    h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
+    # Column Headers (Hidden on Mobile)
+    h_col = st.columns([1.5, 3, 1.5, 2])
+    h_col[0].markdown("<div class='mobile-header-hide'><b>USN</b></div>", unsafe_allow_html=True)
+    h_col[1].markdown("<div class='mobile-header-hide'><b>NAME</b></div>", unsafe_allow_html=True)
+    h_col[2].markdown("<div class='mobile-header-hide'><b>STATUS</b></div>", unsafe_allow_html=True)
+    h_col[3].markdown("<div class='mobile-header-hide'><b>ACTION</b></div>", unsafe_allow_html=True)
     st.divider()
 
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-        r1.text(usn)
-        r2.markdown(f"**{name}**")
+        r1.markdown(f"**{usn}**")
+        r2.text(name)
         
         status = st.session_state.att_records.get(usn)
         if status == "P": r3.success("Present")
@@ -183,13 +184,10 @@ with tab1:
         if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
             st.session_state.att_records[usn] = "A"
             st.rerun()
+        st.markdown("<hr style='margin: 5px 0; border: 0.1px solid #eee;'>", unsafe_allow_html=True)
 
-    st.divider()
-    
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
-        if dt < date.today():
-            st.error("Cannot save attendance for a past date.")
-        elif None in st.session_state.att_records.values():
+        if None in st.session_state.att_records.values():
             st.warning("Please mark all students.")
         else:
             new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
@@ -207,12 +205,10 @@ with tab1:
             st.rerun()
 
 with tab2:
-    st.markdown("### 📊 Student Eligibility & Performance")
+    st.markdown("### 📊 Student Eligibility")
     if os.path.exists(FILE_PATH):
         df = pd.read_csv(FILE_PATH)
-        
         if not df.empty:
-            # 1. Eligibility Section
             stats = df.groupby(['USN', 'Name']).agg(
                 Total_Classes=('Status', 'count'),
                 Attended=('Status', lambda x: (x == 'P').sum())
@@ -227,41 +223,27 @@ with tab2:
                 color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
                 return f'background-color: {color}; color: black; font-weight: bold'
 
-            st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
-            styled_stats = stats.style.map(highlight_eligibility, subset=['Eligibility'])
-            st.dataframe(styled_stats, use_container_width=True, hide_index=True)
+            st.dataframe(stats.style.map(highlight_eligibility, subset=['Eligibility']), 
+                         use_container_width=True, hide_index=True)
 
-            # 2. Filtering Section
             st.divider()
-            st.markdown("#### 🔍 Filter Detailed History")
-            
+            st.markdown("#### 🔍 Filter History")
             f1, f2 = st.columns(2)
-            
             with f1:
-                # Create a list of "USN - NAME" for the dropdown
                 student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
-                selected_student_raw = st.selectbox("Select Student", student_options)
-            
+                sel_student = st.selectbox("Select Student", student_options)
             with f2:
-                subject_options = ["All Subjects"] + list(SUBJECT_INFO.keys())
-                selected_subject = st.selectbox("Select Subject", subject_options)
+                sel_sub = st.selectbox("Select Subject", ["All Subjects"] + list(SUBJECT_INFO.keys()))
 
-            # Filter Logic
             filtered_df = df.copy()
-            
-            if selected_student_raw != "All Students":
-                # Extract USN from the "USN - NAME" string
-                selected_usn = selected_student_raw.split(" - ")[0]
-                filtered_df = filtered_df[filtered_df['USN'] == selected_usn]
-            
-            if selected_subject != "All Subjects":
-                filtered_df = filtered_df[filtered_df['Subject'] == selected_subject]
+            if sel_student != "All Students":
+                filtered_df = filtered_df[filtered_df['USN'] == sel_student.split(" - ")[0]]
+            if sel_sub != "All Subjects":
+                filtered_df = filtered_df[filtered_df['Subject'] == sel_sub]
 
-            # Display Results
-            st.markdown(f"**Showing {len(filtered_df)} records:**")
-            st.dataframe(filtered_df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
-            
+            st.dataframe(filtered_df.sort_values(by="Date", ascending=False), 
+                         use_container_width=True, hide_index=True)
         else:
-            st.info("File is empty. Please save attendance records first.")
+            st.info("No records yet.")
     else:
-        st.info("No records found yet. Save attendance to see the dashboard here.")
+        st.info("No attendance file found.")
