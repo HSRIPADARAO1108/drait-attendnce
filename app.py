@@ -1,4 +1,5 @@
 import streamlit as st
+import pd as pd
 import pandas as pd
 from datetime import date
 import os
@@ -57,7 +58,6 @@ def apply_background(image_file, is_login=False):
                 z-index: -1;
             }}
             
-            /* HIGH OPACITY WHITE CONTAINER TO PREVENT ACCENT COLOR BLEED */
             .main .block-container {{
                 background-color: rgba(255, 255, 255, 0.98) !important;
                 padding: 1.5rem 1rem !important;
@@ -66,7 +66,6 @@ def apply_background(image_file, is_login=False):
                 box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             }}
 
-            /* JET BLACK ULTRA-SHARP TEXT FOR STUDENT LIST */
             .student-label {{
                 color: #000000 !important;
                 font-weight: 900 !important;
@@ -74,7 +73,6 @@ def apply_background(image_file, is_login=False):
                 margin: 0px !important;
                 line-height: 1.2;
                 letter-spacing: -0.5px;
-                /* Browser trick to thicken font for low-end mobile screens */
                 -webkit-text-stroke: 0.5px #000000;
                 text-rendering: optimizeLegibility;
             }}
@@ -89,7 +87,6 @@ def apply_background(image_file, is_login=False):
                 .hide-on-mobile {{
                     display: none !important;
                 }}
-                /* Force mobile text to absolute black */
                 p, span, label, div {{
                     color: #000000 !important;
                 }}
@@ -177,7 +174,8 @@ with tab1:
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
     with c2:
-        dt = st.date_input("Date", date.today())
+        # UPDATED: Added min_value=date.today() to lock previous dates
+        dt = st.date_input("Date", value=date.today(), min_value=date.today())
     with c3:
         st.markdown("<div style='height: 28px;' class='hide-on-mobile'></div>", unsafe_allow_html=True)
         if st.button("✅ Mark All Present", use_container_width=True):
@@ -198,7 +196,6 @@ with tab1:
         with st.container():
             r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
             
-            # Using <div> for tight layout and extreme visibility
             r1.markdown(f"<div class='student-label'>{usn}</div>", unsafe_allow_html=True)
             r2.markdown(f"<div class='student-label'>{name}</div>", unsafe_allow_html=True)
             
@@ -215,7 +212,6 @@ with tab1:
                 st.session_state.att_records[usn] = "A"
                 st.rerun()
             
-            # Thicker dark divider to separate students clearly
             st.markdown("<hr style='margin: 10px 0; border: 1.2px solid black; opacity: 0.15;'>", unsafe_allow_html=True)
 
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
