@@ -39,7 +39,6 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     bin_str = get_base64_of_bin_file(image_file)
     if bin_str:
-        # Base CSS for both Desktop and Mobile
         common_style = f"""
             <style>
             .stApp {{
@@ -58,7 +57,6 @@ def apply_background(image_file, is_login=False):
                 z-index: -1;
             }}
             
-            /* Responsive Container Padding */
             .main .block-container {{
                 background-color: rgba(255, 255, 255, 0.95);
                 padding: 2rem 1rem !important;
@@ -66,13 +64,20 @@ def apply_background(image_file, is_login=False):
                 margin-top: 20px;
             }}
 
-            /* MOBILE RESPONSIVENESS FIX */
+            /* FORCED DARK TEXT FOR READABILITY */
+            .student-label {{
+                color: #000000 !important;
+                font-weight: 800 !important;
+                font-size: 1.1rem !important;
+                margin: 0px !important;
+            }}
+
             @media (max-width: 768px) {{
                 [data-testid="column"] {{
                     width: 100% !important;
                     flex: 1 1 100% !important;
                     min-width: 100% !important;
-                    margin-bottom: 10px;
+                    margin-bottom: 5px;
                 }}
                 .hide-on-mobile {{
                     display: none !important;
@@ -100,7 +105,7 @@ def apply_background(image_file, is_login=False):
 def display_header(is_login_page=False):
     main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
     sub_title_color = "#FFD700" if is_login_page else "#B45309"
-    body_text_color = "#FFFFFF" if is_login_page else "#374151"
+    body_text_color = "#FFFFFF" if is_login_page else "#000000"
 
     st.markdown(f"""
         <div style="text-align: left;">
@@ -157,7 +162,6 @@ tab1, tab2 = st.tabs(["📝 Entry", "📊 Dashboard"])
 with tab1:
     st.markdown("### 📝 Mark Daily Attendance")
     
-    # Responsive Controls
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
@@ -172,20 +176,20 @@ with tab1:
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
-    # Table Header (Hidden on Mobile)
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.markdown("<b class='hide-on-mobile'>USN</b>", unsafe_allow_html=True)
-    h2.markdown("<b class='hide-on-mobile'>NAME</b>", unsafe_allow_html=True)
-    h3.markdown("<b class='hide-on-mobile'>STATUS</b>", unsafe_allow_html=True)
-    h4.markdown("<b class='hide-on-mobile'>ACTION</b>", unsafe_allow_html=True)
+    h1.markdown("<b class='hide-on-mobile' style='color:black;'>USN</b>", unsafe_allow_html=True)
+    h2.markdown("<b class='hide-on-mobile' style='color:black;'>NAME</b>", unsafe_allow_html=True)
+    h3.markdown("<b class='hide-on-mobile' style='color:black;'>STATUS</b>", unsafe_allow_html=True)
+    h4.markdown("<b class='hide-on-mobile' style='color:black;'>ACTION</b>", unsafe_allow_html=True)
     st.divider()
 
     for usn, name in STUDENT_DATA.items():
-        # Row Container
         with st.container():
             r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-            r1.markdown(f"**{usn}**")
-            r2.markdown(name)
+            
+            # USE CUSTOM CSS CLASS FOR MAXIMUM VISIBILITY
+            r1.markdown(f"<p class='student-label'>{usn}</p>", unsafe_allow_html=True)
+            r2.markdown(f"<p class='student-label'>{name}</p>", unsafe_allow_html=True)
             
             status = st.session_state.att_records.get(usn)
             if status == "P": r3.success("Present")
@@ -199,7 +203,7 @@ with tab1:
             if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
                 st.session_state.att_records[usn] = "A"
                 st.rerun()
-            st.markdown("<hr style='margin: 5px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin: 5px 0; border: 0.5px solid #000; opacity: 0.1;'>", unsafe_allow_html=True)
 
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
@@ -232,7 +236,6 @@ with tab2:
             stats['%'] = (stats['Attended'] / stats['Total'] * 100).round(1)
             stats['Eligibility'] = stats['%'].apply(lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE")
 
-            # Dashboard Table
             st.dataframe(stats, use_container_width=True, hide_index=True)
 
             st.divider()
@@ -244,7 +247,6 @@ with tab2:
             with f2:
                 selected_subject = st.selectbox("Select Subject", ["All Subjects"] + list(SUBJECT_INFO.keys()))
 
-            # Filter logic
             filtered_df = df.copy()
             if selected_student != "All Students":
                 filtered_df = filtered_df[filtered_df['USN'] == selected_student.split(" - ")[0]]
