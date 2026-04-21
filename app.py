@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, datetime, timedelta
 import os
 import base64
 
@@ -28,16 +28,21 @@ FILE_PATH = "attendance_records.csv"
 LOGIN_BG = "login.jpeg"  
 MAIN_BG = "after_login.jpg" 
 
-# --- 2. DATA PERSISTENCE HELPERS ---
+# --- 2. DATA PERSISTENCE & 6-MONTH MAINTENANCE ---
 def load_records():
     if os.path.exists(FILE_PATH):
-        return pd.read_csv(FILE_PATH)
+        df = pd.read_csv(FILE_PATH)
+        # Maintenance: Auto-delete records older than 6 months (180 days)
+        df['Date'] = pd.to_datetime(df['Date']).dt.date
+        six_months_ago = date.today() - timedelta(days=180)
+        df = df[df['Date'] >= six_months_ago]
+        return df
     return pd.DataFrame(columns=["Date", "Subject", "USN", "Name", "Status"])
 
 def save_records_to_csv(date_str, subject, records):
     df_existing = load_records()
-    # Remove existing entry for same date/subject to prevent duplicates
-    mask = ~((df_existing["Date"] == date_str) & (df_existing["Subject"] == subject))
+    # Ensure current save is clean
+    mask = ~((df_existing["Date"].astype(str) == date_str) & (df_existing["Subject"] == subject))
     df_existing = df_existing[mask]
     
     new_rows = [{"Date": date_str, "Subject": subject, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
@@ -45,7 +50,7 @@ def save_records_to_csv(date_str, subject, records):
     df_final = pd.concat([df_existing, pd.DataFrame(new_rows)], ignore_index=True)
     df_final.to_csv(FILE_PATH, index=False)
 
-# --- 3. UI HELPERS ---
+# --- 3. UI HELPERS (SMARTPHONE OPTIMIZED) ---
 def get_base64_of_bin_file(bin_file):
     if os.path.exists(bin_file):
         with open(bin_file, 'rb') as f:
@@ -54,15 +59,20 @@ def get_base64_of_bin_file(bin_file):
 
 def apply_background(image_file, is_login=False):
     bin_str = get_base64_of_bin_file(image_file)
+    # Mobile responsiveness CSS
     container_css = """
         [data-testid="stVerticalBlock"] > div:has(div.stForm) {
             background-color: rgba(255, 255, 255, 0.95);
-            padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
     """ if is_login else """
         .main .block-container {
             background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px; border-radius: 15px; margin-top: 20px;
+            padding: 15px; border-radius: 15px; margin-top: 10px;
+        }
+        /* Make buttons more touch-friendly on mobile */
+        button {
+            min-height: 45px !important;
         }
     """
     st.markdown(f"""
@@ -72,26 +82,20 @@ def apply_background(image_file, is_login=False):
             background-size: cover; background-position: center; background-attachment: fixed;
         }}
         {container_css}
-        .badge-p {{ background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 5px; font-weight: bold; }}
-        .badge-a {{ background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 5px; font-weight: bold; }}
+        .badge-p {{ background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 12px; }}
+        .badge-a {{ background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 12px; }}
         </style>
     """, unsafe_allow_html=True)
 
 def display_header(is_login_page=False):
     main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
     sub_title_color = "#FFD700" if is_login_page else "#B45309"
-    body_text_color = "#FFFFFF" if is_login_page else "#374151"
-
     st.markdown(f"""
         <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
-            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
-                M.Tech. - Computer Science & Engineering (SCS)
-            </div>
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 22px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 16px;">COMPUTER SCIENCE & ENGINEERING</h3>
         </div>
-        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
+        <hr style='border: 1px solid #1E3A8A; margin: 10px 0;'>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION ---
@@ -101,16 +105,13 @@ if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
+    st.set_page_config(page_title="Login | Dr. AIT", page_icon="🔐", layout="centered")
     apply_background(LOGIN_BG, is_login=True)
     display_header(is_login_page=True)
-
     with st.form("Login"):
-        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
-        role = st.selectbox("Select Role", ["Faculty", "CR"])
-        password = st.text_input("Access Password", type="password")
-        submit = st.form_submit_button("Login to System", use_container_width=True)
-        if submit:
+        role = st.selectbox("Role", ["Faculty", "CR"])
+        password = st.text_input("Password", type="password")
+        if st.form_submit_button("Sign In", use_container_width=True):
             if password == CREDENTIALS.get(role):
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
@@ -119,85 +120,73 @@ if not st.session_state.authenticated:
     st.stop()
 
 # --- 5. MAIN INTERFACE ---
-st.set_page_config(page_title="Attendance Portal", layout="wide")
+st.set_page_config(page_title="Dr. AIT Portal", layout="wide")
 apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
-    if st.button("🚪 Logout", type="primary", use_container_width=True):
+    st.write(f"Logged in as: **{st.session_state.user_role}**")
+    if st.button("🚪 Logout", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
-    st.divider()
-    df_current = load_records()
-    if not df_current.empty:
-        csv = df_current.to_csv(index=False).encode('utf-8')
-        st.download_button("📂 Download All Records", csv, "attendance.csv", "text/csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Attendance", "📊 Analytics"])
 
 with tab1:
-    st.markdown("### 📝 Mark Daily Attendance")
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1: sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
-    with c2: dt = st.date_input("Date", date.today())
-    with c3: 
-        if st.button("✅ Mark All Present", use_container_width=True):
-            for usn in STUDENT_DATA.keys(): st.session_state.att_records[usn] = "P"
-            st.rerun()
+    st.subheader("Mark Daily Attendance")
+    c1, c2 = st.columns(2)
+    with c1:
+        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
+    with c2:
+        # Restriction: Today's date is the maximum allowed date
+        dt = st.date_input("Date", date.today(), max_value=date.today())
     
-    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    if st.button("✅ Mark All Present", use_container_width=True):
+        for usn in STUDENT_DATA.keys(): st.session_state.att_records[usn] = "P"
+        st.rerun()
 
-    # Live Metrics
-    p_count = list(st.session_state.att_records.values()).count("P")
-    a_count = list(st.session_state.att_records.values()).count("A")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Present", p_count)
-    m2.metric("Absent", a_count)
-    m3.metric("Total", len(STUDENT_DATA))
-
-    st.markdown("""<div style="background:#1E3A8A; color:white; padding:10px; border-radius:8px; display:flex; font-weight:bold;">
-                <div style="flex:1.5;">USN</div><div style="flex:3;">NAME</div><div style="flex:1.5;">STATUS</div><div style="flex:2;">ACTION</div></div>""", unsafe_allow_html=True)
+    st.markdown("---")
     
+    # Mobile Optimized Table Replacement
     for usn, name in STUDENT_DATA.items():
-        r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-        r1.text(usn)
-        r2.markdown(f"**{name}**")
-        
-        status = st.session_state.att_records[usn]
-        if status == "P": r3.markdown('<span class="badge-p">Present</span>', unsafe_allow_html=True)
-        elif status == "A": r3.markdown('<span class="badge-a">Absent</span>', unsafe_allow_html=True)
-        else: r3.info("Pending")
-        
-        btn_p, btn_a = r4.columns(2)
-        if btn_p.button("P", key=f"p_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "P"; st.rerun()
-        if btn_a.button("A", key=f"a_{usn}", use_container_width=True):
-            st.session_state.att_records[usn] = "A"; st.rerun()
+        with st.container():
+            # USN and Name in one row, buttons in another for mobile touch comfort
+            r1, r2 = st.columns([3, 1])
+            r1.markdown(f"**{name}** \n`{usn}`")
+            
+            status = st.session_state.att_records[usn]
+            if status == "P": r2.markdown('<span class="badge-p">P</span>', unsafe_allow_html=True)
+            elif status == "A": r2.markdown('<span class="badge-a">A</span>', unsafe_allow_html=True)
+            else: r2.write("⏱️")
+            
+            btn_p, btn_a = st.columns(2)
+            if btn_p.button("PRESENT", key=f"p_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "P"; st.rerun()
+            if btn_a.button("ABSENT", key=f"a_{usn}", use_container_width=True):
+                st.session_state.att_records[usn] = "A"; st.rerun()
+            st.markdown("<hr style='margin:10px 0; opacity:0.1'>", unsafe_allow_html=True)
 
-    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
+    if st.button("💾 SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.warning("Please mark all students before saving.")
+            st.warning("Please mark all students.")
         else:
             save_records_to_csv(str(dt), sub, st.session_state.att_records)
-            st.balloons()
-            st.success(f"Attendance for {sub} saved successfully!")
+            st.success("Saved! Records will be kept for 6 months.")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
 with tab2:
-    st.markdown("### 📊 Subject Dashboard")
     df = load_records()
     if df.empty:
-        st.info("No records found in database.")
+        st.info("No records found.")
     else:
-        # Subject-wise percentage
+        st.write("### Rolling 6-Month Summary")
+        # Subject Percentage
         stats = df.groupby("Subject")["Status"].apply(lambda x: (x == "P").sum() / len(x) * 100).reset_index()
         for _, row in stats.iterrows():
-            st.write(f"**{row['Subject']}**")
+            st.write(f"**{row['Subject']}** ({row['Status']:.1f}%)")
             st.progress(row['Status'] / 100)
-            st.caption(f"Average Attendance: {row['Status']:.1f}%")
         
         st.divider()
-        st.markdown("### Individual Student Performance")
+        st.write("### Individual Report")
         student_pivot = df.groupby(["USN", "Name"])["Status"].apply(lambda x: round((x == "P").sum() / len(x) * 100, 1)).reset_index()
         st.dataframe(student_pivot.sort_values("Status", ascending=False), use_container_width=True, hide_index=True)
