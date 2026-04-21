@@ -4,7 +4,7 @@ from datetime import date
 import os
 
 # --- 1. DATA SETUP ---
-# Student List from your records
+# Student List for Dr. AIT M.Tech CSE
 student_data = {
     "1DA25SCS01": "BALAPRIYA F", "1DA25SCS02": "BHAVANA A", "1DA25SCS03": "CHARAN A",
     "1DA25SCS04": "CHETHAN PRASAD L", "1DA25SCS05": "DEEPTHI K", "1DA25SCS06": "DILIP K",
@@ -24,7 +24,7 @@ subject_info = {
     "MCS254: Agile Technologies": "Dr. Nandini N."
 }
 
-# Credentials
+# Updated Credentials
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 
 # --- 2. SESSION STATE MANAGEMENT ---
@@ -56,7 +56,7 @@ st.set_page_config(page_title="Attendance System", layout="wide")
 
 with st.sidebar:
     st.title("Control Panel")
-    st.write(f"User: **{st.session_state.user_role}**")
+    st.write(f"User Role: **{st.session_state.user_role}**")
     
     selected_sub = st.selectbox("Select Subject", list(subject_info.keys()))
     curr_faculty = subject_info[selected_sub]
@@ -65,12 +65,13 @@ with st.sidebar:
     att_date = st.date_input("Date", date.today())
     
     st.divider()
-    if st.button("Logout", color="red"):
+    # Corrected Line: 'type' is used instead of 'color' to avoid TypeError
+    if st.button("Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
 
 st.title(f"📊 Marking: {selected_sub}")
-st.write(f"Date: {att_date} | Faculty: {curr_faculty}")
+st.write(f"**Date:** {att_date} | **Faculty:** {curr_faculty}")
 
 # --- 5. ATTENDANCE TABLE ---
 header_cols = st.columns([1.5, 3, 1.5, 2])
@@ -140,6 +141,6 @@ if st.button("Submit Final Attendance", type="primary", use_container_width=True
         df_final.to_csv(file_path, index=False)
         
         st.balloons()
-        st.success("Data successfully synced to global database!")
-        # Reset for next session
+        st.success("Data successfully recorded!")
+        # Reset session state for the next period
         st.session_state.att_records = {usn: None for usn in student_data.keys()}
