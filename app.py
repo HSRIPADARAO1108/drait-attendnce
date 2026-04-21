@@ -53,23 +53,30 @@ def apply_background(image_file, is_login=False):
                 background-size: cover;
                 background-position: center;
                 background-attachment: fixed;
-                {"filter: blur(6px); transform: scale(1.05);" if not is_login else ""}
+                {"filter: blur(8px); transform: scale(1.05);" if not is_login else ""}
                 z-index: -1;
             }}
             
+            /* HIGH OPACITY WHITE CONTAINER TO PREVENT ACCENT COLOR BLEED */
             .main .block-container {{
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 2rem 1rem !important;
+                background-color: rgba(255, 255, 255, 0.98) !important;
+                padding: 1.5rem 1rem !important;
                 border-radius: 15px;
-                margin-top: 20px;
+                margin-top: 15px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             }}
 
-            /* FORCED DARK TEXT FOR READABILITY */
+            /* JET BLACK ULTRA-SHARP TEXT FOR STUDENT LIST */
             .student-label {{
                 color: #000000 !important;
-                font-weight: 800 !important;
-                font-size: 1.1rem !important;
+                font-weight: 900 !important;
+                font-size: 1.15rem !important;
                 margin: 0px !important;
+                line-height: 1.2;
+                letter-spacing: -0.5px;
+                /* Browser trick to thicken font for low-end mobile screens */
+                -webkit-text-stroke: 0.5px #000000;
+                text-rendering: optimizeLegibility;
             }}
 
             @media (max-width: 768px) {{
@@ -77,13 +84,18 @@ def apply_background(image_file, is_login=False):
                     width: 100% !important;
                     flex: 1 1 100% !important;
                     min-width: 100% !important;
-                    margin-bottom: 5px;
+                    margin-bottom: 2px !important;
                 }}
                 .hide-on-mobile {{
                     display: none !important;
                 }}
+                /* Force mobile text to absolute black */
+                p, span, label, div {{
+                    color: #000000 !important;
+                }}
                 .stButton > button {{
                     width: 100% !important;
+                    border: 1px solid #000000 !important;
                 }}
             }}
             </style>
@@ -94,9 +106,8 @@ def apply_background(image_file, is_login=False):
             st.markdown("""
                 <style>
                 [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-                    background-color: rgba(255, 255, 255, 0.9);
+                    background-color: rgba(255, 255, 255, 0.95);
                     padding: 30px; border-radius: 20px;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -109,11 +120,11 @@ def display_header(is_login_page=False):
 
     st.markdown(f"""
         <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: clamp(18px, 5vw, 28px);">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: clamp(14px, 4vw, 20px);">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px; font-size: 13px;">M.Tech. SCS PROGRAM</p>
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: clamp(18px, 5vw, 28px); font-weight: 900;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: clamp(14px, 4vw, 20px); font-weight: bold;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: 900; margin-bottom: 2px; font-size: 13px;">M.Tech. SCS PROGRAM</p>
         </div>
-        <hr style='border: 1px solid #1E3A8A; margin-top: 10px;'>
+        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION GATE ---
@@ -148,7 +159,7 @@ apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
+    st.markdown(f"<h3 style='color:black;'>Welcome, <b>{st.session_state.user_role}</b></h3>", unsafe_allow_html=True)
     if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
@@ -160,7 +171,7 @@ with st.sidebar:
 tab1, tab2 = st.tabs(["📝 Entry", "📊 Dashboard"])
 
 with tab1:
-    st.markdown("### 📝 Mark Daily Attendance")
+    st.markdown("<h3 style='color:black;'>📝 Mark Daily Attendance</h3>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
@@ -177,19 +188,19 @@ with tab1:
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.markdown("<b class='hide-on-mobile' style='color:black;'>USN</b>", unsafe_allow_html=True)
-    h2.markdown("<b class='hide-on-mobile' style='color:black;'>NAME</b>", unsafe_allow_html=True)
-    h3.markdown("<b class='hide-on-mobile' style='color:black;'>STATUS</b>", unsafe_allow_html=True)
-    h4.markdown("<b class='hide-on-mobile' style='color:black;'>ACTION</b>", unsafe_allow_html=True)
+    h1.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>USN</b>", unsafe_allow_html=True)
+    h2.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>NAME</b>", unsafe_allow_html=True)
+    h3.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>STATUS</b>", unsafe_allow_html=True)
+    h4.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>ACTION</b>", unsafe_allow_html=True)
     st.divider()
 
     for usn, name in STUDENT_DATA.items():
         with st.container():
             r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
             
-            # USE CUSTOM CSS CLASS FOR MAXIMUM VISIBILITY
-            r1.markdown(f"<p class='student-label'>{usn}</p>", unsafe_allow_html=True)
-            r2.markdown(f"<p class='student-label'>{name}</p>", unsafe_allow_html=True)
+            # Using <div> for tight layout and extreme visibility
+            r1.markdown(f"<div class='student-label'>{usn}</div>", unsafe_allow_html=True)
+            r2.markdown(f"<div class='student-label'>{name}</div>", unsafe_allow_html=True)
             
             status = st.session_state.att_records.get(usn)
             if status == "P": r3.success("Present")
@@ -203,7 +214,9 @@ with tab1:
             if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
                 st.session_state.att_records[usn] = "A"
                 st.rerun()
-            st.markdown("<hr style='margin: 5px 0; border: 0.5px solid #000; opacity: 0.1;'>", unsafe_allow_html=True)
+            
+            # Thicker dark divider to separate students clearly
+            st.markdown("<hr style='margin: 10px 0; border: 1.2px solid black; opacity: 0.15;'>", unsafe_allow_html=True)
 
     if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
@@ -224,7 +237,7 @@ with tab1:
             st.rerun()
 
 with tab2:
-    st.markdown("### 📊 Performance & Eligibility")
+    st.markdown("<h3 style='color:black;'>📊 Performance & Eligibility</h3>", unsafe_allow_html=True)
     if os.path.exists(FILE_PATH):
         df = pd.read_csv(FILE_PATH)
         if not df.empty:
@@ -239,7 +252,7 @@ with tab2:
             st.dataframe(stats, use_container_width=True, hide_index=True)
 
             st.divider()
-            st.markdown("#### 🔍 History Filter")
+            st.markdown("<h4 style='color:black;'>🔍 History Filter</h4>", unsafe_allow_html=True)
             f1, f2 = st.columns(2)
             with f1:
                 student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
