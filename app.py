@@ -25,130 +25,142 @@ SUBJECT_INFO = {
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
 
-# --- 2. PROFESSIONAL HEADER COMPONENT ---
+# --- 2. PERFECTLY ALIGNED PROFESSIONAL HEADER ---
 def display_header():
-    # Styled Header Container
+    # CSS for high-end professional alignment
     st.markdown("""
         <style>
-            .main-header {
-                text-align: center;
-                padding: 30px;
-                background: rgba(255, 255, 255, 0.05); /* Works for dark/light mode */
-                border-radius: 15px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+            .header-box {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #ffffff;
+                padding: 25px;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+                border-left: 10px solid #1e3a8a; /* Strong Navy Accent */
+                box-shadow: 0 2px 10px rgba(0,0,0,0.05);
                 margin-bottom: 20px;
             }
-            .inst-name {
-                color: #1E3A8A; 
-                font-size: 32px; 
-                font-weight: 800; 
-                margin-bottom: 5px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
+            .logo-section {
+                flex: 0 0 150px; /* Fixed width for logo area */
+                text-align: center;
+                margin-right: 30px;
+                border-right: 2px solid #f0f0f0;
+                padding-right: 20px;
             }
-            .school-name {
-                color: #D97706; 
-                font-size: 20px; 
-                font-weight: 600; 
-                margin-bottom: 0px;
+            .text-section {
+                flex: 1;
             }
-            .program-name {
-                color: #64748B; 
-                font-size: 16px; 
-                font-weight: 500;
-                margin-top: 5px;
-                letter-spacing: 2px;
+            .school-text {
+                color: #B45309; /* Academic Gold */
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                font-size: 24px;
+                font-weight: 700;
+                margin: 0;
+                line-height: 1.2;
             }
-            .badge {
-                background-color: #1E3A8A;
-                color: white;
-                padding: 6px 20px;
-                border-radius: 50px;
-                font-size: 14px;
+            .program-text {
+                color: #1e3a8a; /* Navy Blue */
+                font-family: 'Segoe UI', Tahoma, sans-serif;
+                font-size: 18px;
                 font-weight: 600;
+                margin: 4px 0;
+                letter-spacing: 0.5px;
+            }
+            .mtech-text {
+                color: #4b5563; /* Slate Grey */
+                font-family: 'Segoe UI', Tahoma, sans-serif;
+                font-size: 16px;
+                font-weight: 500;
+                background: #f3f4f6;
                 display: inline-block;
-                margin-top: 15px;
-                box-shadow: 0 4px 15px rgba(30, 58, 138, 0.3);
+                padding: 3px 12px;
+                border-radius: 4px;
+                margin-top: 5px;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # Wrap content in the styled div
-    st.markdown('<div class="main-header">', unsafe_allow_html=True)
+    # Creating the aligned layout
+    header_col1, header_col2 = st.columns([1, 4])
     
-    # Centering the Logo
-    col1, col2, col3 = st.columns([2, 1, 2])
-    with col2:
+    with header_col1:
         if os.path.exists("logo.png"):
-            st.image("logo.png", width=120)
-    
-    st.markdown('<div class="inst-name">Dr. Ambedkar Institute of Technology</div>', unsafe_allow_html=True)
-    st.markdown('<div class="school-name">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</div>', unsafe_allow_html=True)
-    st.markdown('<div class="program-name">COMPUTER SCIENCE & ENGINEERING PROGRAM</div>', unsafe_allow_html=True)
-    st.markdown('<div class="badge">M.Tech. - Computer Science & Engineering (SCS)</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.image("logo.png", width=140)
+        else:
+            st.error("Logo missing")
 
-# --- 3. AUTHENTICATION LOGIC ---
+    with header_col2:
+        st.markdown("""
+            <div style="padding-left: 20px; border-left: 2px solid #eee;">
+                <div class="school-text">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</div>
+                <div class="program-text">COMPUTER SCIENCE & ENGINEERING PROGRAM</div>
+                <div class="mtech-text">M.Tech. - Computer Science & Engineering (SCS)</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<hr style='margin-top: 0; margin-bottom: 30px; border: 0; border-top: 1px solid #eee;'>", unsafe_allow_html=True)
+
+# --- 3. AUTHENTICATION & SESSION ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
-st.set_page_config(page_title="Dr. AIT Attendance", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Dr. AIT SCS Portal", layout="wide", page_icon="🎓")
 
 if not st.session_state.authenticated:
     display_header()
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.container():
-        c1, c2, c3 = st.columns([1, 1.5, 1])
-        with c2:
-            with st.form("Login"):
-                st.subheader("🔐 Secure Portal Login")
-                role = st.selectbox("Role", ["Faculty", "CR"])
-                password = st.text_input("Access Code", type="password")
-                if st.form_submit_button("Access System", use_container_width=True):
-                    if password == CREDENTIALS[role]:
-                        st.session_state.authenticated, st.session_state.user_role = True, role
-                        st.rerun()
-                    else:
-                        st.error("Access Denied.")
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        st.markdown("<h3 style='text-align: center;'>Portal Login</h3>", unsafe_allow_html=True)
+        with st.form("Login_Form"):
+            role = st.selectbox("Identify as", ["Faculty", "CR"])
+            password = st.text_input("Access Password", type="password")
+            if st.form_submit_button("Enter System", use_container_width=True):
+                if password == CREDENTIALS[role]:
+                    st.session_state.authenticated, st.session_state.user_role = True, role
+                    st.rerun()
+                else:
+                    st.error("Access Denied: Incorrect Password")
     st.stop()
 
-# --- 4. MAIN APP ---
+# --- 4. MAIN APPLICATION ---
 display_header()
 
 with st.sidebar:
-    st.markdown("### 👤 User Info")
-    st.info(f"**Role:** {st.session_state.user_role}")
-    if st.button("🚪 Logout", use_container_width=True):
+    st.markdown("### 🛠️ Control Center")
+    st.write(f"Logged in: **{st.session_state.user_role}**")
+    if st.button("Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("💾 Backup Data (CSV)", f, "attendance.csv", use_container_width=True)
+            st.download_button("Download CSV Database", f, "attendance_data.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Record Attendance", "📊 Subject Dashboard"])
 
-# --- TAB 1: MARKING ---
 with tab1:
-    st.markdown("### 📝 Active Attendance Sheet")
-    c1, c2 = st.columns(2)
-    with c1:
-        selected_sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
-    with c2:
-        att_date = st.date_input("Date", date.today())
+    st.subheader("Attendance Entry")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        sub = st.selectbox("Choose Subject", list(SUBJECT_INFO.keys()))
+    with col_b:
+        d_val = st.date_input("Select Date", date.today())
     
-    st.markdown(f"<div style='padding:10px; border-radius:5px; background:rgba(217, 119, 6, 0.1); border-left: 5px solid #D97706; color: #D97706;'><b>Instructor:</b> {SUBJECT_INFO[selected_sub]}</div>", unsafe_allow_html=True)
+    st.info(f"**Assigned Faculty:** {SUBJECT_INFO[sub]}")
     st.divider()
 
+    # Column headers for the marking table
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
     h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
         r1.text(usn)
-        r2.markdown(f"**{name}**")
+        r2.text(name)
         
         status = st.session_state.att_records[usn]
         if status == "P": r3.success("Present")
@@ -163,48 +175,45 @@ with tab1:
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
-    if st.button("🔒 Finalize Records", type="primary", use_container_width=True):
+    if st.button("Finalize and Save to Cloud", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.error("Please mark all students.")
+            st.error("Please complete the attendance list.")
         else:
-            new_rows = []
+            rows = []
             for usn, stat in st.session_state.att_records.items():
-                new_rows.append({
-                    "Date": str(att_date), "Subject": selected_sub,
-                    "Faculty": SUBJECT_INFO[selected_sub], "USN": usn,
-                    "Name": STUDENT_DATA[usn], "Status": stat,
-                    "Marked_By": st.session_state.user_role
+                rows.append({
+                    "Date": str(d_val), "Subject": sub, "Faculty": SUBJECT_INFO[sub],
+                    "USN": usn, "Name": STUDENT_DATA[usn], "Status": stat, "By": st.session_state.user_role
                 })
-            
-            df_new = pd.DataFrame(new_rows)
+            df_new = pd.DataFrame(rows)
             if os.path.exists(FILE_PATH):
                 df_old = pd.read_csv(FILE_PATH)
-                df_final = pd.concat([df_old, df_new], ignore_index=True)
+                df_final = pd.concat([df_old, df_new], ignore_index=True).drop_duplicates(subset=['Date', 'Subject', 'USN'], keep='last')
             else:
                 df_final = df_new
-            
-            df_final = df_final.drop_duplicates(subset=['Date', 'Subject', 'USN'], keep='last')
             df_final.to_csv(FILE_PATH, index=False)
             st.balloons()
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
-# --- TAB 2: ANALYTICS ---
 with tab2:
     if not os.path.exists(FILE_PATH):
-        st.warning("No database found.")
+        st.info("No data recorded yet.")
     else:
-        df = pd.read_csv(FILE_PATH)
-        sel_sub = st.selectbox("View Subject Report", list(SUBJECT_INFO.keys()))
-        sub_df = df[df['Subject'] == sel_sub]
-        total = sub_df['Date'].nunique()
+        df_log = pd.read_csv(FILE_PATH)
+        sub_sel = st.selectbox("Select Subject for Analytics", list(SUBJECT_INFO.keys()), key="an_sub")
+        df_filtered = df_log[df_log['Subject'] == sub_sel]
+        total_sessions = df_filtered['Date'].nunique()
         
-        st.metric("Total Classes Conducted", total)
+        st.metric("Total Classes Conducted", total_sessions)
         
-        if total > 0:
+        if total_sessions > 0:
             summary = []
             for usn, name in STUDENT_DATA.items():
-                p = sub_df[sub_df['USN'] == usn][sub_df['Status'] == 'P']['Date'].nunique()
-                perc = (p/total*100)
-                summary.append({"USN": usn, "Name": name, "Attendance %": f"{perc:.1f}%", "Status": "✅ OK" if perc >= 75 else "⚠️ Shortage"})
-            
+                p_count = df_filtered[(df_filtered['USN'] == usn) & (df_filtered['Status'] == 'P')]['Date'].nunique()
+                at_perc = (p_count / total_sessions * 100)
+                summary.append({
+                    "USN": usn, "Name": name, "Present": p_count,
+                    "Attendance %": f"{at_perc:.1f}%",
+                    "Status": "✅ OK" if at_perc >= 75 else "⚠️ Shortage"
+                })
             st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
