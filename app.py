@@ -5,8 +5,6 @@ import os
 import base64
 
 # --- 1. CONFIGURATION & DATA ---
-# Fresh start configuration
-START_DATE = "2026-04-23"
 STUDENT_DATA = {
     "1DA25SCS01": "BALAPRIYA F", "1DA25SCS02": "BHAVANA A", "1DA25SCS03": "CHARAN A",
     "1DA25SCS04": "CHETHAN PRASAD L", "1DA25SCS05": "DEEPTHI K", "1DA25SCS06": "DILIP K",
@@ -30,7 +28,7 @@ FILE_PATH = "attendance_records.csv"
 LOGIN_BG = "login.jpeg"        
 MAIN_BG = "after_login.jpg"    
 
-# --- 2. UI HELPERS & CSS ---
+# --- 2. BACKGROUND IMAGE HELPER ---
 def get_base64_of_bin_file(bin_file):
     if os.path.exists(bin_file):
         with open(bin_file, 'rb') as f:
@@ -43,98 +41,164 @@ def apply_background(image_file, is_login=False):
     if bin_str:
         common_style = f"""
             <style>
-            .stApp {{ background-color: transparent; }}
+            .stApp {{
+                background-color: transparent;
+            }}
             .stApp::before {{
-                content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                content: "";
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
                 background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover; background-position: center; background-attachment: fixed;
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
                 {"filter: blur(8px); transform: scale(1.05);" if not is_login else ""}
                 z-index: -1;
             }}
+            
+            /* HIGH OPACITY WHITE CONTAINER TO PREVENT ACCENT COLOR BLEED */
             .main .block-container {{
                 background-color: rgba(255, 255, 255, 0.98) !important;
-                padding: 1.5rem 1rem !important; border-radius: 15px; margin-top: 15px;
+                padding: 1.5rem 1rem !important;
+                border-radius: 15px;
+                margin-top: 15px;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             }}
+
+            /* JET BLACK ULTRA-SHARP TEXT FOR STUDENT LIST */
             .student-label {{
-                color: #000000 !important; font-weight: 900 !important; font-size: 1.1rem !important;
-                margin: 0px !important; -webkit-text-stroke: 0.5px #000000;
+                color: #000000 !important;
+                font-weight: 900 !important;
+                font-size: 1.15rem !important;
+                margin: 0px !important;
+                line-height: 1.2;
+                letter-spacing: -0.5px;
+                /* Browser trick to thicken font for low-end mobile screens */
+                -webkit-text-stroke: 0.5px #000000;
+                text-rendering: optimizeLegibility;
             }}
+
             @media (max-width: 768px) {{
-                [data-testid="column"] {{ width: 100% !important; flex: 1 1 100% !important; margin-bottom: 2px !important; }}
-                .hide-on-mobile {{ display: none !important; }}
-                p, span, label, div {{ color: #000000 !important; }}
-                .stButton > button {{ width: 100% !important; border: 1.2px solid #000 !important; }}
+                [data-testid="column"] {{
+                    width: 100% !important;
+                    flex: 1 1 100% !important;
+                    min-width: 100% !important;
+                    margin-bottom: 2px !important;
+                }}
+                .hide-on-mobile {{
+                    display: none !important;
+                }}
+                /* Force mobile text to absolute black */
+                p, span, label, div {{
+                    color: #000000 !important;
+                }}
+                .stButton > button {{
+                    width: 100% !important;
+                    border: 1px solid #000000 !important;
+                }}
             }}
             </style>
         """
         st.markdown(common_style, unsafe_allow_html=True)
+        
+        if is_login:
+            st.markdown("""
+                <style>
+                [data-testid="stVerticalBlock"] > div:has(div.stForm) {
+                    background-color: rgba(255, 255, 255, 0.95);
+                    padding: 30px; border-radius: 20px;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
+# --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
-    m_color = "#FFFFFF" if is_login_page else "#1E3A8A"
-    s_color = "#FFD700" if is_login_page else "#B45309"
-    b_color = "#FFFFFF" if is_login_page else "#000000"
+    main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
+    sub_title_color = "#FFD700" if is_login_page else "#B45309"
+    body_text_color = "#FFFFFF" if is_login_page else "#000000"
+
     st.markdown(f"""
         <div style="text-align: left;">
-            <h1 style="color: {m_color}; margin-bottom: 0; font-size: clamp(18px, 5vw, 26px); font-weight: 900;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {s_color}; margin-top: 0; font-size: clamp(14px, 4vw, 18px);">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {b_color}; font-weight: 900; font-size: 13px;">M.Tech. SCS | SESSION START: {START_DATE}</p>
-        </div><hr style='border: 1.5px solid #1E3A8A; margin: 10px 0;'>
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: clamp(18px, 5vw, 28px); font-weight: 900;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: clamp(14px, 4vw, 20px); font-weight: bold;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: 900; margin-bottom: 2px; font-size: 13px;">M.Tech. SCS PROGRAM</p>
+        </div>
+        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
     """, unsafe_allow_html=True)
 
-# --- 3. SESSION STATE ---
+# --- 4. AUTHENTICATION GATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
-# --- 4. LOGIN ---
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Portal Login", layout="centered")
+    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
     apply_background(LOGIN_BG, is_login=True)
     display_header(is_login_page=True)
+
     with st.form("Login"):
+        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
         role = st.selectbox("Select Role", ["Faculty", "CR"])
-        password = st.text_input("Password", type="password")
-        if st.form_submit_button("Access System", use_container_width=True):
+        password = st.text_input("Access Password", type="password")
+        submit = st.form_submit_button("Login to System", use_container_width=True)
+        
+        if submit:
             if password == CREDENTIALS.get(role):
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
                 st.rerun()
-            else: st.error("Invalid Credentials")
+            else:
+                st.error("Incorrect Password")
     st.stop()
 
-# --- 5. MAIN APP ---
+# --- 5. MAIN INTERFACE (Post-Login) ---
 st.set_page_config(page_title="Attendance Portal", layout="wide")
-apply_background(MAIN_BG)
-display_header()
+apply_background(MAIN_BG, is_login=False)
+display_header(is_login_page=False)
 
 with st.sidebar:
-    st.markdown(f"### User: {st.session_state.user_role}")
-    if st.button("Logout"):
+    st.markdown(f"<h3 style='color:black;'>Welcome, <b>{st.session_state.user_role}</b></h3>", unsafe_allow_html=True)
+    if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("Download CSV", f, "attendance.csv")
+            st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 View Analytics"])
+tab1, tab2 = st.tabs(["📝 Entry", "📊 Dashboard"])
 
 with tab1:
-    col1, col2, col3 = st.columns([2, 1, 1])
-    sub = col1.selectbox("Subject", list(SUBJECT_INFO.keys()))
-    dt = col2.date_input("Date", date(2026, 4, 23)) # Default to your start date
-    if col3.button("Mark All Present", use_container_width=True):
-        for usn in STUDENT_DATA.keys(): st.session_state.att_records[usn] = "P"
-        st.rerun()
-
+    st.markdown("<h3 style='color:black;'>📝 Mark Daily Attendance</h3>", unsafe_allow_html=True)
+    
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
+    with c2:
+        dt = st.date_input("Date", date.today())
+    with c3:
+        st.markdown("<div style='height: 28px;' class='hide-on-mobile'></div>", unsafe_allow_html=True)
+        if st.button("✅ Mark All Present", use_container_width=True):
+            for usn in STUDENT_DATA.keys():
+                st.session_state.att_records[usn] = "P"
+            st.rerun()
+    
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    
+    h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
+    h1.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>USN</b>", unsafe_allow_html=True)
+    h2.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>NAME</b>", unsafe_allow_html=True)
+    h3.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>STATUS</b>", unsafe_allow_html=True)
+    h4.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>ACTION</b>", unsafe_allow_html=True)
     st.divider()
 
     for usn, name in STUDENT_DATA.items():
         with st.container():
             r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
+            
+            # Using <div> for tight layout and extreme visibility
             r1.markdown(f"<div class='student-label'>{usn}</div>", unsafe_allow_html=True)
             r2.markdown(f"<div class='student-label'>{name}</div>", unsafe_allow_html=True)
             
@@ -144,37 +208,62 @@ with tab1:
             else: r3.info("Pending")
             
             p_btn, a_btn = r4.columns(2)
-            if p_btn.button("P", key=f"p_{usn}"):
+            if p_btn.button("P", key=f"p_{usn}", use_container_width=True):
                 st.session_state.att_records[usn] = "P"
                 st.rerun()
-            if a_btn.button("A", key=f"a_{usn}"):
+            if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
                 st.session_state.att_records[usn] = "A"
                 st.rerun()
-            st.markdown("<hr style='margin:8px 0; border:0.5px solid #eee;'>", unsafe_allow_html=True)
+            
+            # Thicker dark divider to separate students clearly
+            st.markdown("<hr style='margin: 10px 0; border: 1.2px solid black; opacity: 0.15;'>", unsafe_allow_html=True)
 
-    if st.button("SUBMIT ATTENDANCE", type="primary", use_container_width=True):
+    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.warning("Please complete all entries.")
+            st.warning("Please mark all students.")
         else:
-            new_data = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
+            new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
                         for u, s in st.session_state.att_records.items()]
-            df_new = pd.DataFrame(new_data)
-            df_final = pd.concat([pd.read_csv(FILE_PATH), df_new]) if os.path.exists(FILE_PATH) else df_new
+            df_new = pd.DataFrame(new_rows)
+            if os.path.exists(FILE_PATH):
+                df_old = pd.read_csv(FILE_PATH)
+                df_final = pd.concat([df_old, df_new], ignore_index=True)
+            else:
+                df_final = df_new
             df_final.to_csv(FILE_PATH, index=False)
-            st.success("Data saved for April 23!")
-            st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
             st.balloons()
+            st.success("Successfully Saved!")
+            st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
+            st.rerun()
 
 with tab2:
+    st.markdown("<h3 style='color:black;'>📊 Performance & Eligibility</h3>", unsafe_allow_html=True)
     if os.path.exists(FILE_PATH):
         df = pd.read_csv(FILE_PATH)
         if not df.empty:
             stats = df.groupby(['USN', 'Name']).agg(
                 Total=('Status', 'count'),
-                Present=('Status', lambda x: (x == 'P').sum())
+                Attended=('Status', lambda x: (x == 'P').sum())
             ).reset_index()
-            stats['Percentage'] = (stats['Present'] / stats['Total'] * 100).round(1)
-            stats['Status'] = stats['Percentage'].apply(lambda x: "✅" if x >= 75 else "⚠️")
+            
+            stats['%'] = (stats['Attended'] / stats['Total'] * 100).round(1)
+            stats['Eligibility'] = stats['%'].apply(lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE")
+
             st.dataframe(stats, use_container_width=True, hide_index=True)
-    else:
-        st.write("No records found. Start taking attendance on 23rd April!")
+
+            st.divider()
+            st.markdown("<h4 style='color:black;'>🔍 History Filter</h4>", unsafe_allow_html=True)
+            f1, f2 = st.columns(2)
+            with f1:
+                student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
+                selected_student = st.selectbox("Select Student", student_options)
+            with f2:
+                selected_subject = st.selectbox("Select Subject", ["All Subjects"] + list(SUBJECT_INFO.keys()))
+
+            filtered_df = df.copy()
+            if selected_student != "All Students":
+                filtered_df = filtered_df[filtered_df['USN'] == selected_student.split(" - ")[0]]
+            if selected_subject != "All Subjects":
+                filtered_df = filtered_df[filtered_df['Subject'] == selected_subject]
+
+            st.dataframe(filtered_df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
