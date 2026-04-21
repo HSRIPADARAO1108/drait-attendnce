@@ -231,5 +231,3 @@ with tab2:
 
 # Call the credit footer at the end of the script
 display_dev_credit()
-
-```
