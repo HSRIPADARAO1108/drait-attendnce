@@ -22,23 +22,35 @@ SUBJECT_INFO = {
     "MCS254: Agile Technologies": "Dr. Nandini N."
 }
 
-# Access Credentials
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
 
-# --- 2. AUTHENTICATION GATE ---
+# --- 2. THEME & HEADER ---
+def display_header():
+    st.markdown("""
+        <div style="text-align: center; padding: 10px; border-bottom: 3px solid #1E3A8A;">
+            <h1 style="color: #1E3A8A; margin-bottom: 0;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: #1E40AF; margin-top: 0;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="font-weight: bold; color: #374151; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
+            <p style="color: #1F2937;">M.Tech. - Computer Science & Engineering (SCS)</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+# --- 3. AUTHENTICATION GATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="M.Tech Login", page_icon="🔐")
-    st.title("🛡️ M.Tech Dept. Attendance Portal")
+    st.set_page_config(page_title="Dr. AIT Login", page_icon="🔐")
+    display_header()
+    st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
+        st.subheader("🔐 Secure Access Portal")
         role = st.selectbox("Select Role", ["Faculty", "CR"])
         password = st.text_input("Enter Access Code", type="password")
-        if st.button("Authorize Access", use_container_width=True):
+        if st.button("Authorize Access", use_container_width=True, type="primary"):
             if password == CREDENTIALS[role]:
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
@@ -47,12 +59,13 @@ if not st.session_state.authenticated:
                 st.error("Invalid Credentials")
     st.stop()
 
-# --- 3. MAIN APP INTERFACE ---
-st.set_page_config(page_title="Attendance & Dashboard", layout="wide")
+# --- 4. MAIN APP INTERFACE ---
+st.set_page_config(page_title="Attendance Dashboard", layout="wide")
+display_header()
 
-# Sidebar
+# Sidebar Styling
 with st.sidebar:
-    st.title("Control Panel")
+    st.title("⚙️ Control Panel")
     st.write(f"Logged in: **{st.session_state.user_role}**")
     if st.button("Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
@@ -60,26 +73,31 @@ with st.sidebar:
     st.divider()
     if os.path.exists(FILE_PATH):
         with open(FILE_PATH, "rb") as f:
-            st.download_button("Download CSV Database", f, "attendance_master.csv", "text/csv")
+            st.download_button("📥 Export CSV Data", f, "attendance_master.csv", "text/csv", use_container_width=True)
 
-# Tabs for Navigation
+# Navigation Tabs
 tab1, tab2 = st.tabs(["📝 Mark Attendance", "📊 Subject Master Dashboard"])
 
 # --- TAB 1: ATTENDANCE MARKING ---
 with tab1:
-    st.header("Mark Daily Attendance")
+    st.markdown("### 📝 Attendance Entry")
     c_sel, d_sel = st.columns(2)
     with c_sel:
-        selected_sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
+        selected_sub = st.selectbox("Current Subject", list(SUBJECT_INFO.keys()))
     with d_sel:
-        att_date = st.date_input("Date", date.today())
+        att_date = st.date_input("Session Date", date.today())
     
     st.info(f"**Faculty in Charge:** {SUBJECT_INFO[selected_sub]}")
-    st.divider()
-
+    
     # Table Header
+    st.markdown("""
+        <div style="background-color: #F3F4F6; padding: 10px; border-radius: 5px; border-left: 5px solid #1E3A8A;">
+            <strong>USN & Student Name Table</strong>
+        </div>
+    """, unsafe_allow_html=True)
+    
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.write("**USN**"); h2.write("**Name**"); h3.write("**Status**"); h4.write("**Action**")
+    h1.write("**USN**"); h2.write("**Name**"); h3.write("**Current Status**"); h4.write("**Action**")
     
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
@@ -99,9 +117,9 @@ with tab1:
             st.session_state.att_records[usn] = "A"
             st.rerun()
 
-    if st.button("Submit to Archive", type="primary", use_container_width=True):
+    if st.button("Finalize and Save Records", type="primary", use_container_width=True):
         if None in st.session_state.att_records.values():
-            st.error("Please mark all students.")
+            st.error("Please complete marking for all students before submitting.")
         else:
             new_rows = []
             for usn, stat in st.session_state.att_records.items():
@@ -119,80 +137,61 @@ with tab1:
             else:
                 df_final = df_new
             
-            # Auto-remove duplicates based on Date, Subject, and USN to keep records "Strict"
             df_final = df_final.drop_duplicates(subset=['Date', 'Subject', 'USN'], keep='last')
-            
             df_final.to_csv(FILE_PATH, index=False)
             st.balloons()
-            st.success("Attendance strictly recorded!")
+            st.success("Attendance successfully archived in database.")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
 
-# --- TAB 2: UPDATED ANALYTICS DASHBOARD ---
+# --- TAB 2: ANALYTICS DASHBOARD ---
 with tab2:
-    st.header("📊 Subject Master Dashboard")
+    st.markdown("### 📊 Attendance Analytics")
     if not os.path.exists(FILE_PATH):
-        st.warning("No data found in records. Please mark attendance first.")
+        st.warning("Database empty. Start by marking attendance.")
     else:
         df = pd.read_csv(FILE_PATH)
-        df['Date'] = df['Date'].astype(str) # Ensure date is string for consistent comparison
+        df['Date'] = df['Date'].astype(str)
         
-        selected_dashboard_sub = st.selectbox("Select Subject to View All Students", list(SUBJECT_INFO.keys()), key="dash_sub")
-        
-        # Filter data for the chosen subject
+        selected_dashboard_sub = st.selectbox("Choose Subject", list(SUBJECT_INFO.keys()), key="dash_sub")
         sub_df = df[df['Subject'] == selected_dashboard_sub]
-        
-        # Calculate strict total classes held for this subject (Unique dates)
         total_days = sub_df['Date'].nunique()
         
-        st.subheader(f"Attendance Report: {selected_dashboard_sub}")
-        st.write(f"**Total Classes Held:** {total_days}")
+        st.subheader(f"Summary Report: {selected_dashboard_sub}")
+        
+        c1, c2 = st.columns(2)
+        c1.metric("Total Classes Conducted", total_days)
         
         if total_days > 0:
             summary_list = []
-            
             for usn, name in STUDENT_DATA.items():
                 student_sub_data = sub_df[sub_df['USN'] == usn]
-                
-                # Count only unique dates where student was present to avoid > 100% errors
                 present_days = student_sub_data[student_sub_data['Status'] == 'P']['Date'].nunique()
                 absent_days = total_days - present_days
-                
                 perc = (present_days / total_days * 100)
                 
                 summary_list.append({
-                    "USN": usn,
-                    "Name": name,
-                    "Present": present_days,
-                    "Absent": absent_days,
-                    "Attendance %": f"{perc:.1f}%",
-                    "Criteria": "✅ OK" if perc >= 75 else "⚠️ Shortage"
+                    "USN": usn, "Name": name, "Present": present_days,
+                    "Absent": absent_days, "Attendance %": f"{perc:.1f}%",
+                    "Status": "✅ OK" if perc >= 75 else "⚠️ Shortage"
                 })
             
-            # Convert list to DataFrame for the table
-            summary_df = pd.DataFrame(summary_list)
-            
-            # Display full class table
-            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(summary_list), use_container_width=True, hide_index=True)
             
             st.divider()
-            # Individual History Search with USN + Name
-            st.write("#### View Individual Detailed History")
+            st.markdown("#### 🔍 Individual History Lookup")
             
-            # Format student names for the selectbox: "USN - Name"
             student_options = [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
-            selected_option = st.selectbox("Select Student to see specific dates", student_options)
+            selected_option = st.selectbox("Select USN - Name", student_options)
             
-            # Extract the USN back out of the selected string
             search_usn = selected_option.split(" - ")[0]
             search_name = STUDENT_DATA[search_usn]
             
-            st.write(f"Showing detailed records for: **{search_name} ({search_usn})**")
+            st.markdown(f"Detailed logs for: **{search_name} ({search_usn})**")
             
             hist_df = sub_df[sub_df['USN'] == search_usn].sort_values(by='Date', ascending=False)
-            
             if not hist_df.empty:
                 st.table(hist_df[['Date', 'Status', 'Marked_By']])
             else:
-                st.info(f"No records found for {search_name} in this subject.")
+                st.info("No logs found for this specific student.")
         else:
-            st.info("No classes recorded for this subject yet.")
+            st.info("No data available for this subject yet.")
