@@ -39,42 +39,66 @@ def get_base64_of_bin_file(bin_file):
 def apply_background(image_file, is_login=False):
     bin_str = get_base64_of_bin_file(image_file)
     if bin_str:
-        container_css = """
-            [data-testid="stVerticalBlock"] > div:has(div.stForm) {
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 20px; border-radius: 15px;
-            }
-        """ if is_login else """
-            .main .block-container {
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 1.5rem; border-radius: 10px;
-            }
-        """
-        st.markdown(f"""
-            <style>
-            .stApp {{
-                background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover; background-position: center; background-attachment: fixed;
-            }}
-            {container_css}
-            /* Make buttons look better on touch screens */
-            .stButton>button {{
-                border-radius: 8px;
-                height: 3em;
-                font-weight: bold;
-            }}
-            </style>
-        """, unsafe_allow_html=True)
+        if is_login:
+            # Login page: no blur, normal background
+            st.markdown(f"""
+                <style>
+                .stApp {{
+                    background-image: url("data:image/jpeg;base64,{bin_str}");
+                    background-size: cover;
+                    background-position: center;
+                    background-attachment: fixed;
+                }}
+                [data-testid="stVerticalBlock"] > div:has(div.stForm) {{
+                    background-color: rgba(255, 255, 255, 0.9);
+                    padding: 40px; border-radius: 20px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                }}
+                </style>
+            """, unsafe_allow_html=True)
+        else:
+            # After login: blurred background using a pseudo-element overlay trick
+            st.markdown(f"""
+                <style>
+                .stApp {{
+                    background-color: transparent;
+                }}
+                .stApp::before {{
+                    content: "";
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    background-image: url("data:image/jpeg;base64,{bin_str}");
+                    background-size: cover;
+                    background-position: center;
+                    background-attachment: fixed;
+                    filter: blur(6px);
+                    transform: scale(1.05);
+                    z-index: -1;
+                }}
+                .main .block-container {{
+                    background-color: rgba(255, 255, 255, 0.9);
+                    padding: 30px; border-radius: 15px; margin-top: 20px;
+                }}
+                </style>
+            """, unsafe_allow_html=True)
 
 # --- 3. HEADER COMPONENT ---
 def display_header(is_login_page=False):
     main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
+    sub_title_color = "#FFD700" if is_login_page else "#B45309"
+    body_text_color = "#FFFFFF" if is_login_page else "#374151"
+
     st.markdown(f"""
         <div style="text-align: left;">
-            <h2 style="color: {main_title_color}; margin-bottom: 0; font-size: 22px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h2>
-            <p style="color: #B45309; font-weight: bold; margin-bottom: 5px; font-size: 14px;">M.Tech. SCS - Attendance Portal</p>
+            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: 28px;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
+            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: 20px;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
+            <p style="color: {body_text_color}; font-weight: bold; margin-bottom: 2px;">COMPUTER SCIENCE & ENGINEERING PROGRAM</p>
+            <div style="background-color: rgba(30, 58, 138, 0.8); color: white; display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 14px;">
+                M.Tech. - Computer Science & Engineering (SCS)
+            </div>
         </div>
-        <hr style='margin: 10px 0;'>
+        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
     """, unsafe_allow_html=True)
 
 # --- 4. AUTHENTICATION GATE ---
@@ -84,78 +108,88 @@ if 'att_records' not in st.session_state:
     st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
 
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Portal Login", page_icon="🔐", layout="centered")
+    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
     apply_background(LOGIN_BG, is_login=True)
     display_header(is_login_page=True)
 
     with st.form("Login"):
-        st.markdown("<h3 style='text-align: center;'>🔐 Access</h3>", unsafe_allow_html=True)
-        role = st.selectbox("Role", ["Faculty", "CR"])
-        password = st.text_input("Password", type="password")
-        if st.form_submit_button("Login", use_container_width=True):
+        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
+        role = st.selectbox("Select Role", ["Faculty", "CR"])
+        password = st.text_input("Access Password", type="password")
+        submit = st.form_submit_button("Login to System", use_container_width=True)
+        
+        if submit:
             if password == CREDENTIALS.get(role):
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
                 st.rerun()
             else:
-                st.error("Invalid Password")
+                st.error("Incorrect Password")
     st.stop()
 
-# --- 5. MAIN INTERFACE ---
+# --- 5. MAIN INTERFACE (Post-Login) ---
 st.set_page_config(page_title="Attendance Portal", layout="wide")
 apply_background(MAIN_BG, is_login=False)
 display_header(is_login_page=False)
 
 with st.sidebar:
-    st.write(f"Logged in: **{st.session_state.user_role}**")
-    if st.button("🚪 Logout", use_container_width=True):
+    st.markdown(f"### Welcome, **{st.session_state.user_role}**")
+    if st.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
+    st.divider()
+    if os.path.exists(FILE_PATH):
+        with open(FILE_PATH, "rb") as f:
+            st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Entry", "📊 Dashboard"])
+tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Student Dashboard"])
 
 with tab1:
-    # Top controls - stacks automatically on mobile
-    col_a, col_b = st.columns([1, 1])
-    with col_a:
-        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
-    with col_b:
-        dt = st.date_input("Date", date.today())
+    st.markdown("### 📝 Mark Daily Attendance")
     
-    if st.button("✅ Mark All Present", use_container_width=True):
-        for usn in STUDENT_DATA.keys():
-            st.session_state.att_records[usn] = "P"
-        st.rerun()
-
+    # Header Controls
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
+    with c2:
+        dt = st.date_input("Date", date.today(), min_value=date.today())
+    with c3:
+        st.write("") 
+        if st.button("✅ Mark All Present", use_container_width=True):
+            for usn in STUDENT_DATA.keys():
+                st.session_state.att_records[usn] = "P"
+            st.rerun()
+    
+    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
+    
+    h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
+    h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     st.divider()
 
-    # Mobile Friendly List
     for usn, name in STUDENT_DATA.items():
-        # Using a container for each student to keep it clean on mobile
-        with st.container():
-            # USN and Name on one line
-            st.markdown(f"**{usn}** - {name}")
-            
-            # Buttons and Status on the second line
-            c1, c2, c3 = st.columns([1, 1, 1])
-            
-            status = st.session_state.att_records.get(usn)
-            
-            if c1.button("✅ P", key=f"p_{usn}", use_container_width=True):
-                st.session_state.att_records[usn] = "P"
-                st.rerun()
-            if c2.button("❌ A", key=f"a_{usn}", use_container_width=True):
-                st.session_state.att_records[usn] = "A"
-                st.rerun()
-            
-            with c3:
-                if status == "P": st.success("P")
-                elif status == "A": st.error("A")
-                else: st.info("?")
-        st.markdown("---")
+        r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
+        r1.text(usn)
+        r2.markdown(f"**{name}**")
+        
+        status = st.session_state.att_records.get(usn)
+        if status == "P": r3.success("Present")
+        elif status == "A": r3.error("Absent")
+        else: r3.info("Pending")
+        
+        p_btn, a_btn = r4.columns(2)
+        if p_btn.button("P", key=f"p_{usn}", use_container_width=True):
+            st.session_state.att_records[usn] = "P"
+            st.rerun()
+        if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
+            st.session_state.att_records[usn] = "A"
+            st.rerun()
 
-    if st.button("💾 SAVE ATTENDANCE", type="primary", use_container_width=True):
-        if None in st.session_state.att_records.values():
+    st.divider()
+    
+    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
+        if dt < date.today():
+            st.error("Cannot save attendance for a past date.")
+        elif None in st.session_state.att_records.values():
             st.warning("Please mark all students.")
         else:
             new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
@@ -168,42 +202,66 @@ with tab1:
                 df_final = df_new
             df_final.to_csv(FILE_PATH, index=False)
             st.balloons()
-            st.success("Saved!")
+            st.success("Successfully Saved!")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
             st.rerun()
 
 with tab2:
+    st.markdown("### 📊 Student Eligibility & Performance")
     if os.path.exists(FILE_PATH):
         df = pd.read_csv(FILE_PATH)
+        
         if not df.empty:
-            # 1. Eligibility Table
+            # 1. Eligibility Section
             stats = df.groupby(['USN', 'Name']).agg(
-                Total=('Status', 'count'),
+                Total_Classes=('Status', 'count'),
                 Attended=('Status', lambda x: (x == 'P').sum())
             ).reset_index()
-            stats['%'] = (stats['Attended'] / stats['Total'] * 100).round(1)
-            stats['Status'] = stats['%'].apply(lambda x: "✅ OK" if x >= 75 else "⚠️ Low")
-
-            st.markdown("#### % Attendance Report")
-            # Using st.dataframe with use_container_width=True makes it scrollable on mobile
-            st.dataframe(stats, use_container_width=True, hide_index=True)
-
-            st.divider()
             
-            # 2. Search & Filter
-            st.markdown("#### 🔍 Filter Records")
-            student_list = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
-            sel_student = st.selectbox("Select Student", student_list)
-            sel_sub = st.selectbox("Select Subject", ["All Subjects"] + list(SUBJECT_INFO.keys()))
+            stats['Percentage (%)'] = (stats['Attended'] / stats['Total_Classes'] * 100).round(2)
+            stats['Eligibility'] = stats['Percentage (%)'].apply(
+                lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE"
+            )
 
+            def highlight_eligibility(val):
+                color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
+                return f'background-color: {color}; color: black; font-weight: bold'
+
+            st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
+            styled_stats = stats.style.map(highlight_eligibility, subset=['Eligibility'])
+            st.dataframe(styled_stats, use_container_width=True, hide_index=True)
+
+            # 2. Filtering Section
+            st.divider()
+            st.markdown("#### 🔍 Filter Detailed History")
+            
+            f1, f2 = st.columns(2)
+            
+            with f1:
+                # Create a list of "USN - NAME" for the dropdown
+                student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
+                selected_student_raw = st.selectbox("Select Student", student_options)
+            
+            with f2:
+                subject_options = ["All Subjects"] + list(SUBJECT_INFO.keys())
+                selected_subject = st.selectbox("Select Subject", subject_options)
+
+            # Filter Logic
             filtered_df = df.copy()
-            if sel_student != "All Students":
-                filtered_df = filtered_df[filtered_df['USN'] == sel_student.split(" - ")[0]]
-            if sel_sub != "All Subjects":
-                filtered_df = filtered_df[filtered_df['Subject'] == sel_sub]
+            
+            if selected_student_raw != "All Students":
+                # Extract USN from the "USN - NAME" string
+                selected_usn = selected_student_raw.split(" - ")[0]
+                filtered_df = filtered_df[filtered_df['USN'] == selected_usn]
+            
+            if selected_subject != "All Subjects":
+                filtered_df = filtered_df[filtered_df['Subject'] == selected_subject]
 
+            # Display Results
+            st.markdown(f"**Showing {len(filtered_df)} records:**")
             st.dataframe(filtered_df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+            
         else:
-            st.info("No records found.")
+            st.info("File is empty. Please save attendance records first.")
     else:
-        st.info("No attendance file found.")
+        st.info("No records found yet. Save attendance to see the dashboard here.")
