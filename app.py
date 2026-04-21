@@ -128,7 +128,7 @@ with tab1:
     # Header Controls
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
+        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
     with c2:
         dt = st.date_input("Date", date.today(), min_value=date.today())
     with c3:
@@ -190,40 +190,55 @@ with tab2:
         df = pd.read_csv(FILE_PATH)
         
         if not df.empty:
-            # Calculate Statistics
+            # 1. Eligibility Section
             stats = df.groupby(['USN', 'Name']).agg(
                 Total_Classes=('Status', 'count'),
                 Attended=('Status', lambda x: (x == 'P').sum())
             ).reset_index()
             
             stats['Percentage (%)'] = (stats['Attended'] / stats['Total_Classes'] * 100).round(2)
-            
-            # Define Eligibility
             stats['Eligibility'] = stats['Percentage (%)'].apply(
                 lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE"
             )
 
-            # Style the dataframe - Fixed for Pandas 2.0 using .map()
             def highlight_eligibility(val):
                 color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
                 return f'background-color: {color}; color: black; font-weight: bold'
 
             st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
-            
-            # Use .map() to avoid AttributeError on newer Pandas versions
             styled_stats = stats.style.map(highlight_eligibility, subset=['Eligibility'])
-            
             st.dataframe(styled_stats, use_container_width=True, hide_index=True)
 
-            # Detailed History with Filter
+            # 2. Filtering Section
             st.divider()
-            st.markdown("#### Full Attendance History")
-            search_usn = st.text_input("🔍 Search by USN to see detailed history:")
-            if search_usn:
-                filtered_df = df[df['USN'].str.contains(search_usn, case=False)]
-                st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-            else:
-                st.dataframe(df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+            st.markdown("#### 🔍 Filter Detailed History")
+            
+            f1, f2 = st.columns(2)
+            
+            with f1:
+                # Create a list of "USN - NAME" for the dropdown
+                student_options = ["All Students"] + [f"{usn} - {name}" for usn, name in STUDENT_DATA.items()]
+                selected_student_raw = st.selectbox("Select Student", student_options)
+            
+            with f2:
+                subject_options = ["All Subjects"] + list(SUBJECT_INFO.keys())
+                selected_subject = st.selectbox("Select Subject", subject_options)
+
+            # Filter Logic
+            filtered_df = df.copy()
+            
+            if selected_student_raw != "All Students":
+                # Extract USN from the "USN - NAME" string
+                selected_usn = selected_student_raw.split(" - ")[0]
+                filtered_df = filtered_df[filtered_df['USN'] == selected_usn]
+            
+            if selected_subject != "All Subjects":
+                filtered_df = filtered_df[filtered_df['Subject'] == selected_subject]
+
+            # Display Results
+            st.markdown(f"**Showing {len(filtered_df)} records:**")
+            st.dataframe(filtered_df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+            
         else:
             st.info("File is empty. Please save attendance records first.")
     else:
