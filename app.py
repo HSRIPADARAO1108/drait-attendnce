@@ -189,37 +189,42 @@ with tab2:
     if os.path.exists(FILE_PATH):
         df = pd.read_csv(FILE_PATH)
         
-        # Calculate Statistics
-        # Group by Student and calculate %
-        stats = df.groupby(['USN', 'Name']).agg(
-            Total_Classes=('Status', 'count'),
-            Attended=('Status', lambda x: (x == 'P').sum())
-        ).reset_index()
-        
-        stats['Percentage (%)'] = (stats['Attended'] / stats['Total_Classes'] * 100).round(2)
-        
-        # Define Eligibility
-        stats['Eligibility'] = stats['Percentage (%)'].apply(
-            lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE"
-        )
+        if not df.empty:
+            # Calculate Statistics
+            stats = df.groupby(['USN', 'Name']).agg(
+                Total_Classes=('Status', 'count'),
+                Attended=('Status', lambda x: (x == 'P').sum())
+            ).reset_index()
+            
+            stats['Percentage (%)'] = (stats['Attended'] / stats['Total_Classes'] * 100).round(2)
+            
+            # Define Eligibility
+            stats['Eligibility'] = stats['Percentage (%)'].apply(
+                lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE"
+            )
 
-        # Style the dataframe
-        def highlight_eligibility(val):
-            color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
-            return f'background-color: {color}; color: black; font-weight: bold'
+            # Style the dataframe - Fixed for Pandas 2.0 using .map()
+            def highlight_eligibility(val):
+                color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
+                return f'background-color: {color}; color: black; font-weight: bold'
 
-        st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
-        styled_stats = stats.style.applymap(highlight_eligibility, subset=['Eligibility'])
-        
-        st.dataframe(styled_stats, use_container_width=True, hide_index=True)
+            st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
+            
+            # Use .map() to avoid AttributeError on newer Pandas versions
+            styled_stats = stats.style.map(highlight_eligibility, subset=['Eligibility'])
+            
+            st.dataframe(styled_stats, use_container_width=True, hide_index=True)
 
-        # Detailed History with Filter
-        st.divider()
-        st.markdown("#### Full Attendance History")
-        search_usn = st.text_input("🔍 Search by USN to see detailed history:")
-        if search_usn:
-            st.dataframe(df[df['USN'].str.contains(search_usn, case=False)], use_container_width=True, hide_index=True)
+            # Detailed History with Filter
+            st.divider()
+            st.markdown("#### Full Attendance History")
+            search_usn = st.text_input("🔍 Search by USN to see detailed history:")
+            if search_usn:
+                filtered_df = df[df['USN'].str.contains(search_usn, case=False)]
+                st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+            else:
+                st.dataframe(df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
         else:
-            st.dataframe(df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+            st.info("File is empty. Please save attendance records first.")
     else:
-        st.info("No records found yet.")
+        st.info("No records found yet. Save attendance to see the dashboard here.")
