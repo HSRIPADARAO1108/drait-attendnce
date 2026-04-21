@@ -120,7 +120,7 @@ with st.sidebar:
         with open(FILE_PATH, "rb") as f:
             st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Subject Analytics"])
+tab1, tab2 = st.tabs(["📝 Attendance Entry", "📊 Student Dashboard"])
 
 with tab1:
     st.markdown("### 📝 Mark Daily Attendance")
@@ -130,10 +130,9 @@ with tab1:
     with c1:
         sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()))
     with c2:
-        # Restriction: Cannot select past dates
         dt = st.date_input("Date", date.today(), min_value=date.today())
     with c3:
-        st.write("") # Vertical alignment spacer
+        st.write("") 
         if st.button("✅ Mark All Present", use_container_width=True):
             for usn in STUDENT_DATA.keys():
                 st.session_state.att_records[usn] = "P"
@@ -141,24 +140,19 @@ with tab1:
     
     st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
     
-    # Table Header Labels
     h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
     h1.write("**USN**"); h2.write("**NAME**"); h3.write("**STATUS**"); h4.write("**ACTION**")
     st.divider()
 
-    # Attendance List
     for usn, name in STUDENT_DATA.items():
         r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
         r1.text(usn)
         r2.markdown(f"**{name}**")
         
         status = st.session_state.att_records.get(usn)
-        if status == "P":
-            r3.success("Present")
-        elif status == "A":
-            r3.error("Absent")
-        else:
-            r3.info("Pending")
+        if status == "P": r3.success("Present")
+        elif status == "A": r3.error("Absent")
+        else: r3.info("Pending")
         
         p_btn, a_btn = r4.columns(2)
         if p_btn.button("P", key=f"p_{usn}", use_container_width=True):
@@ -174,31 +168,58 @@ with tab1:
         if dt < date.today():
             st.error("Cannot save attendance for a past date.")
         elif None in st.session_state.att_records.values():
-            st.warning("Please ensure all students are marked (P or A) before saving.")
+            st.warning("Please mark all students.")
         else:
             new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
                         for u, s in st.session_state.att_records.items()]
             df_new = pd.DataFrame(new_rows)
-            
             if os.path.exists(FILE_PATH):
                 df_old = pd.read_csv(FILE_PATH)
                 df_final = pd.concat([df_old, df_new], ignore_index=True)
             else:
                 df_final = df_new
-            
             df_final.to_csv(FILE_PATH, index=False)
-            
             st.balloons()
-            st.success(f"Attendance for {sub} on {dt} saved successfully!")
-            # Reset state
+            st.success("Successfully Saved!")
             st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
             st.rerun()
 
 with tab2:
-    st.markdown("### 📊 Subject Dashboard")
+    st.markdown("### 📊 Student Eligibility & Performance")
     if os.path.exists(FILE_PATH):
-        df_display = pd.read_csv(FILE_PATH)
-        # Filter to show only relevant columns for the dashboard
-        st.dataframe(df_display.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+        df = pd.read_csv(FILE_PATH)
+        
+        # Calculate Statistics
+        # Group by Student and calculate %
+        stats = df.groupby(['USN', 'Name']).agg(
+            Total_Classes=('Status', 'count'),
+            Attended=('Status', lambda x: (x == 'P').sum())
+        ).reset_index()
+        
+        stats['Percentage (%)'] = (stats['Attended'] / stats['Total_Classes'] * 100).round(2)
+        
+        # Define Eligibility
+        stats['Eligibility'] = stats['Percentage (%)'].apply(
+            lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE"
+        )
+
+        # Style the dataframe
+        def highlight_eligibility(val):
+            color = '#dcfce7' if 'ELIGIBLE' in str(val) else '#fee2e2'
+            return f'background-color: {color}; color: black; font-weight: bold'
+
+        st.markdown("#### Exam Eligibility Report (Requirement: 75%)")
+        styled_stats = stats.style.applymap(highlight_eligibility, subset=['Eligibility'])
+        
+        st.dataframe(styled_stats, use_container_width=True, hide_index=True)
+
+        # Detailed History with Filter
+        st.divider()
+        st.markdown("#### Full Attendance History")
+        search_usn = st.text_input("🔍 Search by USN to see detailed history:")
+        if search_usn:
+            st.dataframe(df[df['USN'].str.contains(search_usn, case=False)], use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(df.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
     else:
-        st.info("No records found. Save attendance to see data here.")
+        st.info("No records found yet.")
