@@ -1,3 +1,6 @@
 streamlit
 pandas
 streamlit-js-eval
+opencv-python
+face_recognition 
+numpy
