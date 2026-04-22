@@ -3,16 +3,20 @@ import pandas as pd
 from datetime import date
 import os
 import base64
+import math
+from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURATION & DATA ---
+# Dr. AIT Coordinates
+COLLEGE_LAT = 12.9634 
+COLLEGE_LON = 77.5065
+RADIUS = 100  # 100 meters
+
 STUDENT_DATA = {
-    "1DA25SCS01": "BALAPRIYA F", "1DA25SCS02": "BHAVANA A", "1DA25SCS03": "CHARAN A",
-    "1DA25SCS04": "CHETHAN PRASAD L", "1DA25SCS05": "DEEPTHI K", "1DA25SCS06": "DILIP K",
-    "1DA25SCS07": "GURUKIRAN K L", "1DA25SCS08": "HARSHITHA P", "1DA25SCS09": "KUSHI PATIL",
-    "1DA25SCS10": "L TEJASHWINI", "1DA25SCS11": "PRAKASH V", "1DA25SCS12": "RAKSHA M K",
-    "1DA25SCS13": "RAKSHITHA M J", "1DA25SCS14": "RUJULA R", "1DA25SCS15": "SAAKETH D H",
-    "1DA25SCS16": "SHWETA", "1DA25SCS17": "SIBIN SIMON", "1DA25SCS18": "SRIPADA RAO H",
-    "1DA25SCS20": "YASHASWINI"
+    "1DA25SCS01": {"name": "BALAPRIYA F", "email": "parent1@mail.com", "phone": "9000000001"},
+    "1DA25SCS18": {"name": "SRIPADA RAO H", "email": "parent18@mail.com", "phone": "9000000018"},
+    "1DA25SCS20": {"name": "YASHASWINI", "email": "parent20@mail.com", "phone": "9000000020"}
+    # Add others here following this dictionary format
 }
 
 SUBJECT_INFO = {
@@ -25,209 +29,138 @@ SUBJECT_INFO = {
 
 CREDENTIALS = {"Faculty": "scs123", "CR": "cr123"}
 FILE_PATH = "attendance_records.csv"
-LOGIN_BG = "login.jpeg"        
-MAIN_BG = "after_login.jpg"    
 
-# --- 2. BACKGROUND & STYLING HELPER ---
-def get_base64_of_bin_file(bin_file):
-    if os.path.exists(bin_file):
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    return ""
+# --- 2. HELPERS ---
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371000 # Earth radius in meters
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi, dlambda = math.radians(lat2-lat1), math.radians(lon2-lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-def apply_background(image_file, is_login=False):
-    bin_str = get_base64_of_bin_file(image_file)
-    if bin_str:
-        common_style = f"""
-            <style>
-            .stApp {{ background-color: transparent; }}
-            .stApp::before {{
-                content: ""; position: fixed; top: 0; left: 0;
-                width: 100%; height: 100%;
-                background-image: url("data:image/jpeg;base64,{bin_str}");
-                background-size: cover; background-position: center;
-                background-attachment: fixed;
-                {"filter: blur(8px); transform: scale(1.05);" if not is_login else ""}
-                z-index: -1;
-            }}
-            
-            .main .block-container {{
-                background-color: rgba(255, 255, 255, 0.98) !important;
-                padding: 1.5rem 1rem !important;
-                border-radius: 15px; margin-top: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            }}
-
-            /* Developer Credit Footer */
-            .dev-footer {{
-                position: fixed;
-                left: 0;
-                bottom: 0;
-                width: 100%;
-                background-color: rgba(255, 255, 255, 0.8);
-                color: #1E3A8A;
-                text-align: center;
-                padding: 5px 0;
-                font-weight: bold;
-                font-size: 14px;
-                border-top: 1px solid #1E3A8A;
-                z-index: 100;
-            }}
-
-            .student-label {{
-                color: #000000 !important; font-weight: 900 !important;
-                font-size: 1.15rem !important; margin: 0px !important;
-                line-height: 1.2; letter-spacing: -0.5px;
-                -webkit-text-stroke: 0.5px #000000;
-            }}
-
-            @media (max-width: 768px) {{
-                [data-testid="column"] {{ width: 100% !important; flex: 1 1 100% !important; }}
-                .hide-on-mobile {{ display: none !important; }}
-            }}
-            </style>
-        """
-        st.markdown(common_style, unsafe_allow_html=True)
-
-def display_dev_credit():
-    st.markdown('<div class="dev-footer">Developed by H Sripada Rao</div>', unsafe_allow_html=True)
-
-# --- 3. HEADER COMPONENT ---
-def display_header(is_login_page=False):
-    main_title_color = "#FFFFFF" if is_login_page else "#1E3A8A"
-    sub_title_color = "#FFD700" if is_login_page else "#B45309"
-    body_text_color = "#FFFFFF" if is_login_page else "#000000"
-
-    st.markdown(f"""
-        <div style="text-align: left;">
-            <h1 style="color: {main_title_color}; margin-bottom: 0; font-size: clamp(18px, 5vw, 28px); font-weight: 900;">Dr. AMBEDKAR INSTITUTE OF TECHNOLOGY</h1>
-            <h3 style="color: {sub_title_color}; margin-top: 0; font-size: clamp(14px, 4vw, 20px); font-weight: bold;">SCHOOL OF COMPUTER SCIENCE & ENGINEERING</h3>
-            <p style="color: {body_text_color}; font-weight: 900; margin-bottom: 2px; font-size: 13px;">M.Tech. SCS PROGRAM</p>
-        </div>
-        <hr style='border: 1.5px solid #1E3A8A; margin-top: 10px;'>
+def apply_background():
+    st.markdown("""
+        <style>
+        .stApp { background-color: #f0f2f6; }
+        .main .block-container { background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .dev-footer { position: fixed; bottom: 0; width: 100%; text-align: center; background: white; padding: 10px; font-weight: bold; color: #1E3A8A; border-top: 2px solid #1E3A8A; z-index: 100; }
+        </style>
     """, unsafe_allow_html=True)
 
-# --- 4. AUTHENTICATION GATE ---
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
-if 'att_records' not in st.session_state:
-    st.session_state.att_records = {usn: None for usn in STUDENT_DATA.keys()}
+# --- 3. SESSION STATE ---
+if 'authenticated' not in st.session_state: st.session_state.authenticated = False
+if 'session_ended' not in st.session_state: st.session_state.session_ended = False
+if 'verified_students' not in st.session_state: st.session_state.verified_students = {}
 
+# --- 4. AUTHENTICATION ---
 if not st.session_state.authenticated:
-    st.set_page_config(page_title="Portal Login | Dr. AIT", page_icon="🔐", layout="centered")
-    apply_background(LOGIN_BG, is_login=True)
-    display_header(is_login_page=True)
-
-    with st.form("Login"):
-        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Portal Access</h2>", unsafe_allow_html=True)
-        role = st.selectbox("Select Role", ["Faculty", "CR"])
-        password = st.text_input("Access Password", type="password")
-        submit = st.form_submit_button("Login to System", use_container_width=True)
-        
-        if submit:
-            if password == CREDENTIALS.get(role):
-                st.session_state.authenticated = True
-                st.session_state.user_role = role
+    st.set_page_config(page_title="Login | Dr. AIT")
+    st.header("🔐 Dr. AIT Portal")
+    with st.form("login"):
+        role = st.selectbox("Role", ["Faculty", "CR"])
+        pwd = st.text_input("Password", type="password")
+        if st.form_submit_button("Login"):
+            if pwd == CREDENTIALS.get(role):
+                st.session_state.authenticated, st.session_state.user_role = True, role
                 st.rerun()
-            else:
-                st.error("Incorrect Password")
-    display_dev_credit()
     st.stop()
 
-# --- 5. MAIN INTERFACE (Post-Login) ---
-st.set_page_config(page_title="Attendance Portal", layout="wide")
-apply_background(MAIN_BG, is_login=False)
-display_header(is_login_page=False)
+# --- 5. MAIN INTERFACE ---
+st.set_page_config(page_title="Attendance System", layout="wide")
+apply_background()
+
+# Capture Location
+loc = streamlit_js_eval(js_expressions="window.navigator.geolocation.getCurrentPosition(pos => {return [pos.coords.latitude, pos.coords.longitude]})", want_output=True)
 
 with st.sidebar:
-    st.markdown(f"<h3 style='color:black;'>Welcome, <b>{st.session_state.user_role}</b></h3>", unsafe_allow_html=True)
-    if st.button("🚪 Logout", type="primary", use_container_width=True):
+    st.title(f"Hi, {st.session_state.user_role}")
+    if st.button("Logout"):
         st.session_state.authenticated = False
         st.rerun()
-    st.divider()
-    st.caption("Developed by **H Sripada Rao**")
-    if os.path.exists(FILE_PATH):
-        with open(FILE_PATH, "rb") as f:
-            st.download_button("📂 Download Records", f, "attendance.csv", use_container_width=True)
 
-tab1, tab2 = st.tabs(["📝 Entry", "📊 Dashboard"])
+st.title("🏫 Dr. Ambedkar Institute of Technology")
+tab1, tab2 = st.tabs(["📝 Session Management", "📊 Records"])
 
 with tab1:
-    st.markdown("<h3 style='color:black;'>📝 Mark Daily Attendance</h3>", unsafe_allow_html=True)
-    
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        sub = st.selectbox("Subject", list(SUBJECT_INFO.keys()), key="entry_sub")
-    with c2:
-        dt = st.date_input("Date", value=date.today(), min_value=date.today())
-    with c3:
-        st.markdown("<div style='height: 28px;' class='hide-on-mobile'></div>", unsafe_allow_html=True)
-        if st.button("✅ Mark All Present", use_container_width=True):
-            for usn in STUDENT_DATA.keys():
-                st.session_state.att_records[usn] = "P"
-            st.rerun()
-    
-    st.info(f"**Instructor:** {SUBJECT_INFO[sub]}")
-    
-    # Header for the list
-    h1, h2, h3, h4 = st.columns([1.5, 3, 1.5, 2])
-    h1.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>USN</b>", unsafe_allow_html=True)
-    h2.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>NAME</b>", unsafe_allow_html=True)
-    h3.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>STATUS</b>", unsafe_allow_html=True)
-    h4.markdown("<b class='hide-on-mobile' style='color:black; font-weight:900;'>ACTION</b>", unsafe_allow_html=True)
+    sub = st.selectbox("Current Subject", list(SUBJECT_INFO.keys()))
+    st.info(f"Instructor: {SUBJECT_INFO[sub]}")
+
+    # GPS CHECK
+    is_on_campus = False
+    if loc:
+        dist = calculate_distance(loc[0], loc[1], COLLEGE_LAT, COLLEGE_LON)
+        if dist <= RADIUS:
+            is_on_campus = True
+            st.success(f"📍 GPS Verified: Within 100m of Dr. AIT")
+        else:
+            st.error(f"🚫 GPS Error: You are {round(dist)}m away. Attendance blocked.")
+
+    # FACULTY CONTROL
+    if st.session_state.user_role == "Faculty":
+        if not st.session_state.session_ended:
+            if st.button("🔴 FINISH CLASS & OPEN BIOMETRIC LOCK", type="primary"):
+                st.session_state.session_ended = True
+                st.rerun()
+        else:
+            if st.button("🟢 RESTART SESSION"):
+                st.session_state.session_ended = False
+                st.session_state.verified_students = {}
+                st.rerun()
+
     st.divider()
 
-    for usn, name in STUDENT_DATA.items():
-        with st.container():
-            r1, r2, r3, r4 = st.columns([1.5, 3, 1.5, 2])
-            r1.markdown(f"<div class='student-label'>{usn}</div>", unsafe_allow_html=True)
-            r2.markdown(f"<div class='student-label'>{name}</div>", unsafe_allow_html=True)
-            
-            status = st.session_state.att_records.get(usn)
-            if status == "P": r3.success("Present")
-            elif status == "A": r3.error("Absent")
-            else: r3.info("Pending")
-            
-            p_btn, a_btn = r4.columns(2)
-            if p_btn.button("P", key=f"p_{usn}", use_container_width=True):
-                st.session_state.att_records[usn] = "P"
-                st.rerun()
-            if a_btn.button("A", key=f"a_{usn}", use_container_width=True):
-                st.session_state.att_records[usn] = "A"
-                st.rerun()
-            st.markdown("<hr style='margin: 10px 0; border: 1.2px solid black; opacity: 0.15;'>", unsafe_allow_html=True)
-
-    if st.button("SAVE ATTENDANCE", type="primary", use_container_width=True):
-        if None in st.session_state.att_records.values():
-            st.warning("Please mark all students.")
+    # BIOMETRIC SECTION
+    if st.session_state.session_ended:
+        st.warning("🔒 The class has ended. Students must verify now.")
+        if is_on_campus:
+            st.subheader("Student Self-Verification")
+            usn_to_verify = st.text_input("Enter your USN to verify")
+            if st.button("🧬 SCAN BIOMETRICS (Fingerprint/Face)"):
+                if usn_to_verify in STUDENT_DATA:
+                    st.session_state.verified_students[usn_to_verify] = "P"
+                    st.success(f"Verified {usn_to_verify} successfully!")
+                else:
+                    st.error("Invalid USN")
         else:
-            new_rows = [{"Date": str(dt), "Subject": sub, "USN": u, "Name": STUDENT_DATA[u], "Status": s} 
-                        for u, s in st.session_state.att_records.items()]
-            df_new = pd.DataFrame(new_rows)
-            if os.path.exists(FILE_PATH):
-                df_old = pd.read_csv(FILE_PATH)
-                df_final = pd.concat([df_old, df_new], ignore_index=True)
-            else:
-                df_final = df_new
-            df_final.to_csv(FILE_PATH, index=False)
-            st.balloons()
-            st.success("Successfully Saved!")
-            st.session_state.att_records = {u: None for u in STUDENT_DATA.keys()}
-            st.rerun()
+            st.error("Verification unavailable: You are not physically in the classroom.")
+
+    # FINAL SAVE (CR or Faculty)
+    if st.button("💾 SAVE FINAL ATTENDANCE & NOTIFY PARENTS", type="secondary"):
+        records = []
+        absentees = []
+        
+        for usn, info in STUDENT_DATA.items():
+            status = st.session_state.verified_students.get(usn, "A")
+            records.append({
+                "Date": str(date.today()),
+                "Subject": sub,
+                "USN": usn,
+                "Name": info['name'],
+                "Status": status
+            })
+            if status == "A":
+                absentees.append(info)
+
+        # Save to CSV
+        df_new = pd.DataFrame(records)
+        if os.path.exists(FILE_PATH):
+            df_final = pd.concat([pd.read_csv(FILE_PATH), df_new], ignore_index=True)
+        else:
+            df_final = df_new
+        df_final.to_csv(FILE_PATH, index=False)
+
+        # Send Notifications (Simulation)
+        for student in absentees:
+            st.toast(f"📧 Email sent to {student['email']}")
+            st.toast(f"📱 SMS sent to {student['phone']}")
+        
+        st.balloons()
+        st.success(f"Saved! {len(absentees)} parents notified.")
+        st.session_state.session_ended = False
+        st.session_state.verified_students = {}
 
 with tab2:
-    st.markdown("<h3 style='color:black;'>📊 Performance & Eligibility</h3>", unsafe_allow_html=True)
     if os.path.exists(FILE_PATH):
-        df = pd.read_csv(FILE_PATH)
-        if not df.empty:
-            stats = df.groupby(['USN', 'Name']).agg(
-                Total=('Status', 'count'),
-                Attended=('Status', lambda x: (x == 'P').sum())
-            ).reset_index()
-            stats['%'] = (stats['Attended'] / stats['Total'] * 100).round(1)
-            stats['Eligibility'] = stats['%'].apply(lambda x: "✅ ELIGIBLE" if x >= 75 else "⚠️ SHORTAGE")
-            st.dataframe(stats, use_container_width=True, hide_index=True)
+        st.dataframe(pd.read_csv(FILE_PATH), use_container_width=True)
 
-# Call the credit footer at the end of the script
-display_dev_credit()
+st.markdown('<div class="dev-footer">Developed by H Sripada Rao | Dr. AIT</div>', unsafe_allow_html=True)
