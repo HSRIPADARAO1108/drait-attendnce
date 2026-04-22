@@ -2,6 +2,6 @@ streamlit
 pandas
 numpy
 streamlit-js-eval
-opencv-python-headless
+opencv-python
 face_recognition
 cmake
